@@ -1,86 +1,74 @@
 import bcrypt from "bcrypt";
-import crypto from "crypto";
 import { NextFunction, Request, Response } from "express";
-import nodemailer from "nodemailer";
-import Admin from "../model/admin.model";
 import Blacklist from "../model/blacklist.model";
 import { generateToken, getBearerToken } from "./../utils/token";
+import User from "../model/user.model";
+const crypto = require('crypto');
+const nodemailer = require('nodemailer'); 
 
-// admin signup
-export const adminSignup = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+// signup
+export const signup = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { adminId, email, password } = req.body;
-    const admin = await Admin.findOne({ email: email });
+    const { email } = req.body;
+    const user = await User.findOne({ email: email });
 
-    if (admin) {
-      throw new Error("email already exist");
+    if (user) {
+      throw new Error("email already exist",)
     }
 
-    const savedAdmin = await Admin.create(req.body);
-    await savedAdmin.save({ validateBeforeSave: false });
+    const savedUser = await User.create(req.body);
+    await savedUser.save({ validateBeforeSave: false });
 
     res.status(200).json({
-      message: "Admin signup successful",
+      message: "User signup successful",
     });
   } catch (err: any) {
-    next(err);
+    next(err)
   }
 };
 
-// admin login
-export const adminLogin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+//login
+export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      throw new Error("Please provide your credentials");
+      throw new Error("Please provide your credentials")
     }
 
-    const admin = await Admin.findOne({ email });
+    const user = await User.findOne({ email });
 
-    //console.log(admin);
-
-    if (!admin) {
-      throw new Error("No admin found. Please create an account");
+    if (!user) {
+      throw new Error("No user found. Please create an account",)
     }
 
-    const isPasswordValid = await bcrypt.compare(password, admin.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      throw new Error("Password is incorrect");
-    }
-
-    if (!admin.status) {
-      throw new Error("The admin is banned");
+      throw new Error("Password is not correct")
     }
 
     const token = generateToken({
-      id: admin._id.toString(),
-      email: admin.email,
-      role: admin.role.toLowerCase(),
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email
     });
-    const { password: pwd, ...info } = admin.toObject();
+
+    const { password: pwd, ...info } = user.toObject();
 
     res.status(200).json({
-      message: "admin Login successful",
+      message: "Login successful",
       data: {
         ...info,
-        role: admin.role,
         token,
       },
     });
   } catch (err: any) {
-    next(err);
+    next(err)
   }
 };
+
+// logout
 export const logout = async (
   req: Request,
   res: Response,
@@ -106,9 +94,9 @@ export const resetPassword = async (
 ) => {
   try {
     const { email, newPassword, confirmPassword } = req.body;
-    const admin = await Admin.findOne({ email });
-    if (!admin) {
-      throw new Error("No admin found with this email");
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new Error("No user found with this email");
     }
     if (newPassword !== confirmPassword) {
       throw new Error("Passwords do not match");
@@ -117,7 +105,7 @@ export const resetPassword = async (
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-      await Admin.updateOne(
+      await User.updateOne(
         { email }, 
         { $set: { password: hashedPassword } },
       );
@@ -131,99 +119,72 @@ export const resetPassword = async (
 };
 
 
-// Forgot Password
-// export const forgotPassword = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction,
-// ) => {
-//   try {
-//     const { email } = req.body;
-//     const admin = await Admin.findOne({ email });
+// Define type for otpStore
+interface OTPData {
+  otp: string;
+  expiry: number;
+}
 
-//     if (!admin) {
-//       throw new Error("No admin found with this email");
-//     }
+// In-memory OTP store, mapped by email
+let otpStore: { [key: string]: OTPData } = {};
 
-//     // Generate reset token and set expiration
-//     const resetToken = generateToken({
-//       id: admin._id.toString(),
-//       email: admin.email,
-//       role: admin.role.toLowerCase(),
-//     });
-//     //const resetToken = crypto.randomBytes(32).toString("hex");
-//     console.log(resetToken);
-//     admin.resetPasswordToken = resetToken;
-//     admin.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour expiration
+// Utility function to generate OTP
+const generateOTP = (): string => {
+  return crypto.randomInt(100000, 999999).toString(); // 6-digit OTP
+};
 
-//     await admin.save({ validateBeforeSave: false });
+// Controller to send OTP
+export const sendOTP = async (req: Request, res: Response) => {
+  const { email } = req.body;
 
-//     // Send reset email (setup SMTP server for production)
-//     const resetUrl = `localhost:7000/api/v1/auth/admin/reset-password?token=${resetToken}`;
-//     const transporter = nodemailer.createTransport({
-//       host: "smtp.gmail.com",
-//       port: 587,
-//       secure: false,
-//       auth: {
-//         user: process.env.EMAIL_USER,
-//         pass: process.env.EMAIL_PASSWORD,
-//       },
-//     });
+  try {
+    const otp = generateOTP();
+    const expiry = Date.now() + 10 * 60 * 1000; // OTP expiry in 10 minutes
+    otpStore[email] = { otp, expiry };
 
-//     const mailOptions = {
-//       from: process.env.EMAIL_USER,
-//       to: admin.email,
-//       subject: "Password Reset",
-//       text: `You requested a password reset. Click here to reset your password: ${resetUrl}`,
-//     };
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
-//     transporter.sendMail(mailOptions, (error) => {
-//       if (error) {
-//         throw new Error("Error sending email");
-//       } else {
-//         console.log("Password reset email sent.");
-//       }
-//     });
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Your OTP for 2FA',
+      text: `Your OTP code is: ${otp}`,
+    });
 
-//     res.status(200).json({ message: "Password reset email sent." });
-//   } catch (err: any) {
-//     next(err);
-//   }
-// };
+    res.status(200).send('OTP sent successfully!');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error sending OTP');
+  }
+};
 
-// // Reset Password
-// export const resetPassword = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction,
-// ) => {
-//   try {
-//     const { token, newPassword, confirmPassword } = req.body;
+// Controller to verify OTP
+export const verifyOTP = (req: Request, res: Response) => {
+  const { email, otp } = req.body;
 
-//     if (newPassword !== confirmPassword) {
-//       throw new Error("Passwords do not match");
-//     }
+  const storedOtpData = otpStore[email];
 
-//     // Find admin by token and ensure the token is not expired
-//     const admin = await Admin.findOne({
-//       resetPasswordToken: token,
-//       resetPasswordExpires: { $gt: new Date() }, // Token not expired
-//     });
+  if (!storedOtpData) {
+    return res.status(400).send('OTP not found');
+  }
 
-//     if (!admin) {
-//       throw new Error("Invalid or expired reset token");
-//     }
+  if (storedOtpData.expiry < Date.now()) {
+    delete otpStore[email]; 
+    return res.status(400).send('OTP expired');
+  }
 
-//     // Hash the new password and save it
-//     const salt = await bcrypt.genSalt(10);
-//     admin.password = await bcrypt.hash(newPassword, salt);
-//     admin.resetPasswordToken = "";
-//     admin.resetPasswordExpires = new Date();
+  if (storedOtpData.otp !== otp) {
+    return res.status(400).send('Invalid OTP');
+  }
 
-//     await admin.save();
+  delete otpStore[email];
 
-//     res.status(200).json({ message: "Password has been reset successfully" });
-//   } catch (err: any) {
-//     next(err);
-//   }
-// };
+  res.status(200).send('OTP verified successfully!');
+};
+

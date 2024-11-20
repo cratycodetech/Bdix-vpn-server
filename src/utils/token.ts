@@ -2,18 +2,18 @@ import { Request } from "express";
 import jwt from "jsonwebtoken";
 import secrets from "../config/secret";
 
-type AdminUser = {
+type User = {
   id: string;
+  name: string;
   email: string;
-  role: string;
 };
 
 // generate jwt token
-export const generateToken = (adminUser: AdminUser) => {
+export const generateToken = (user: Partial<User>) => {
   const payload = {
-    id: adminUser.id,
-    email: adminUser.email,
-    role: adminUser.role,
+    id: user.id,
+    name: user.name,
+    email: user.email,
   };
 
   const token = jwt.sign(payload, secrets.jwt_secret, {
@@ -41,12 +41,12 @@ export const getBearerToken = async (req: Request) => {
     if (typeof bearerHeader !== "undefined") {
       const bearer = bearerHeader.split(" ");
       const bearerToken = bearer[1];
-      //console.log(bearerToken);
       return bearerToken;
     } else {
       throw new Error("Token is unavailable");
     }
-  } catch (err:any) {
-    return err;
+  } catch (err: any) {
+    return err.message as string;
   }
 };
+

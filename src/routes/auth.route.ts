@@ -2,18 +2,20 @@ import { Router } from "express";
 
 import {
   logout,
-  adminSignup,
-  adminLogin,
   resetPassword,
+  signup,
+  login,
+  sendOTP,
+  verifyOTP,
 } from "../controller/auth.controller";
 
 const router = Router();
 
-// admin signup
-router.post("/admin/signup", adminSignup);
+//signup
+router.post("/signup", signup);
 
-// admin login
-router.post("/admin/login", adminLogin);
+//login
+router.post("/login", login);
 
 //admin logout
 router.delete("/logout", logout);
@@ -23,5 +25,11 @@ router.delete("/logout", logout);
 
 // reset password
 router.post("/reset-password", resetPassword);
+
+// Route to send OTP
+router.post('/send-otp', sendOTP);
+
+// Route to verify OTP
+router.post('/verify-otp', verifyOTP);
 
 export default router;
