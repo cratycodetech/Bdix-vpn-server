@@ -61,28 +61,118 @@ export const getSingleCredit = async (req: Request, res: Response, next: NextFun
   }
 };
 
+// get credit history
+export const getCreditHistory = async (req: Request, res: Response) => {
+  const { adminId } = req.params;
 
-
-// Create or update Credit and maintain history
-export const addCredit = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { adminId, credit } = req.body;
+    // Fetch credit document for the given adminId
+    const creditData = await Credit.findOne({ adminId }).populate("adminId");
 
-    if (!credit || credit < 50) {
-      return res.status(400).json({ message: "Credit cannot be less than 50" });
+    if (!creditData) {
+      return res.status(404).json({ message: "No credit history found for this admin." });
     }
 
-    const creditDoc = await Credit.findOneAndUpdate(
-      { adminId }, 
-      {
-        $inc: { totalCredit: credit }, 
-        $set: { credit },
-        $push: { history: { credit, date: new Date() } } 
-      },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
+    // Return the history field
+    res.status(200).json({
+      success: true,
+      history: creditData.history,
+    });
+  } catch (error) {
+    console.error("Error fetching credit history:", error);
+    res.status(500).json({ message: "An error occurred while fetching credit history." });
+  }
+};
 
-    res.status(200).json({ success: true, credit: creditDoc });
+export const getAllCreditHistories = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const creditHistories = await Credit.find({}, { history: 1 });
+
+    if (!creditHistories || creditHistories.length === 0) {
+      return res.status(404).json({ message: "No credit histories found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "All credit histories fetched successfully.",
+      data: creditHistories,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// create new credit
+export const addCredit = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = req.body;
+    const { adminId, action, credit } = req.body;
+
+    if (Object.keys(data).length === 0) {
+      throw new Error("Data can't be empty")
+    }
+
+    const credit1 = await Credit.create(data);
+
+    const newHistory = {
+      action,
+      credit,
+      adminId,
+      date: new Date(),
+    };
+
+    credit1.history?.push(newHistory); 
+    await credit1.save();
+
+    res.status(201).json({
+      message: "Credit created Successfully",
+      data: credit1,
+    });
+  } catch (err: any) {
+    next(err)
+  }
+};
+
+//update Credit and maintain history
+export const addCreditHistory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { adminId, action, credit } = req.body;
+
+    if (!adminId || !action || credit == null) {
+      return res.status(400).json({ message: "Admin ID, action, and credit are required." });
+    }
+
+    const creditData = await Credit.findOne({ adminId });
+    if (!creditData) {
+      return res.status(404).json({ message: "No credit record found for this admin." });
+    }
+
+    // Update totalCredit based on the action
+    if (action === "Added") {
+      creditData.totalCredit += credit;
+    } else if (action === "Deducted") {
+      if (creditData.totalCredit - credit < 0) {
+        return res.status(400).json({ message: "Total credit cannot be negative." });
+      }
+      creditData.totalCredit -= credit;
+    } else {
+      return res.status(400).json({ message: "Invalid action. Use 'Added' or 'Deducted'." });
+    }
+
+    const newHistory = {
+      action,
+      credit,
+      date: new Date(),
+    };
+    creditData.history?.push(newHistory);
+
+    await creditData.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Total credit updated and history added successfully.",
+      data: creditData,
+    });
   } catch (err) {
     next(err);
   }

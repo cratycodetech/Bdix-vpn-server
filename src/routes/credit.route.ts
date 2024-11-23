@@ -1,6 +1,13 @@
 import { Router } from "express";
-import { addCredit, getAllCredit ,createCreditRequest, getAllCreditRequest, getCountAllCreditRequest} from "../controller/credit.controller";
-import { getCountActiveServer } from "../controller/server.controller";
+import { 
+    addCredit, 
+    getAllCredit ,
+    createCreditRequest, 
+    getAllCreditRequest, 
+    getCountAllCreditRequest ,
+    addCreditHistory,
+    getCreditHistory,
+    getAllCreditHistories} from "../controller/credit.controller";
 
 const router = Router();
 
@@ -18,6 +25,12 @@ router.get("/count-request", getCountAllCreditRequest);
 
 // create new Credit
 router.post("/add", addCredit);
+
+// generate Credit
+router.post("/generate", addCreditHistory);
+
+router.get("/history", getAllCreditHistories);
+
 
 // create new Credit request
 router.post("/credit-request", createCreditRequest);
