@@ -1,6 +1,8 @@
 import { Router } from "express";
 import authRoutes from "./../routes/auth.route";
 import serverRoutes from "./../routes/server.route";
+import creditRoutes from "./../routes/credit.route";
+
 
 
 const router = Router();
@@ -13,6 +15,8 @@ router.get("/", (_, res) => {
 // general Routes
 router.use("/auth", authRoutes);
 router.use("/server", serverRoutes);
+router.use("/credit", creditRoutes);
+
 
 
 
