@@ -3,10 +3,10 @@ import {
     addCredit, 
     getAllCredit ,
     createCreditRequest, 
-    getAllCreditRequest, 
-    getCountAllCreditRequest ,
+    getAllRequests,
     addCreditHistory,
     getCreditHistory,
+    transferCreditToReseller,
     getAllCreditHistories} from "../controller/credit.controller";
 
 const router = Router();
@@ -15,10 +15,10 @@ const router = Router();
 router.get("/all", getAllCredit);
 
 //get all credit request
-router.get("/all-request", getAllCreditRequest);
+router.get("/all-request", getAllRequests);
 
 //get count all credit request
-router.get("/count-request", getCountAllCreditRequest);
+//router.get("/count-request", getCountAllCreditRequest);
 
 // // get single credit
 // router.get("/single/:id", getSingleCredit);
@@ -29,12 +29,15 @@ router.post("/add", addCredit);
 // generate Credit
 router.post("/generate", addCreditHistory);
 
+// get all credit history
 router.get("/history", getAllCreditHistories);
 
 
 // create new Credit request
 router.post("/credit-request", createCreditRequest);
 
+// create transfer Credit to reseller
+router.post("/credit-transfer", transferCreditToReseller);
 
 // update credit
 // router.patch("/update/:id", updateCredit);

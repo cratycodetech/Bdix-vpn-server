@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import Credit from "../model/credit.model";
-import CreditRequest from "../model/creditRequest.model";
+import RequestModel from "../model/request.model";
+import Reseller from "../model/reseller.model";
+import User from "../model/user.model";
 
 // get all credits
 export const getAllCredit = async (_: Request, res: Response, next: NextFunction) => {
@@ -16,36 +18,39 @@ export const getAllCredit = async (_: Request, res: Response, next: NextFunction
   }
 };
 
-
-// get all credit credit request
-export const getAllCreditRequest = async (_: Request, res: Response, next: NextFunction) => {
+// Get all credit requests
+export const getAllRequests = async (req: Request, res: Response) => {
   try {
-    const credits = await CreditRequest.find({});
+    const { status, userType, search } = req.query;
+
+    const query: any = {};
+    if (status) {
+      query.status = status;
+    }
+    if (userType) {
+      query.userType = userType;
+    }
+    if (search) {
+      query.transactionId = { $regex: search, $options: "i" }; // Search by transactionId
+    }
+
+    // Populate the reseller's details from the User model
+    const requests = await RequestModel.find(query)
+      .populate({
+        path: "resellerId", 
+        select: "name email phone role", 
+        model: "User",
+      })
+      .sort({ createdAt: -1 }); 
 
     res.status(200).json({
-      message: "All credit request get successfully",
-      data: credits,
+      data: requests,
     });
-  } catch (err: any) {
-    next(err)
+  } catch (error) {
+    console.error("Error fetching requests:", error);
+    res.status(500).json({ message: "An error occurred while fetching requests", error });
   }
 };
-
-// get count all credit request
-export const getCountAllCreditRequest = async (_: Request, res: Response, next: NextFunction) => {
-  try {
-    const countCredits = await CreditRequest.countDocuments({});
-
-    res.status(200).json({
-      message: "Total credit count get successfully",
-      data: countCredits,
-    });
-  } catch (err: any) {
-    next(err)
-  }
-};
-
-
 
 // get single credit
 export const getSingleCredit = async (req: Request, res: Response, next: NextFunction) => {
@@ -66,14 +71,11 @@ export const getCreditHistory = async (req: Request, res: Response) => {
   const { adminId } = req.params;
 
   try {
-    // Fetch credit document for the given adminId
     const creditData = await Credit.findOne({ adminId }).populate("adminId");
 
     if (!creditData) {
       return res.status(404).json({ message: "No credit history found for this admin." });
     }
-
-    // Return the history field
     res.status(200).json({
       success: true,
       history: creditData.history,
@@ -178,23 +180,101 @@ export const addCreditHistory = async (req: Request, res: Response, next: NextFu
   }
 };
 
-// create new credit request
-export const createCreditRequest = async (req: Request, res: Response, next: NextFunction) => {
+// Create a new credit request
+export const createCreditRequest = async (req: Request, res: Response) => {
   try {
-    const { reseller, creditAmount, remark } = req.body;
+    const { transactionId, resellerId,  creditAmount } = req.body;
 
-    if (!reseller || !creditAmount) {
-      return res.status(400).json({ message: "Reseller and credit amount are required." });
+    if (!transactionId || !resellerId || !creditAmount) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const newRequest = await CreditRequest.create(req.body);
+    const newRequest = await RequestModel.create(
+     req.body
+    );
 
-    return res.status(201).json({
-      message: "Credit request created successfully.",
-      data: newRequest,
+    const savedRequest = await newRequest.save();
+
+    res.status(201).json({ message: "Request created successfully", data: savedRequest });
+  } catch (error) {
+    console.error("Error creating request:", error);
+    res.status(500).json({ message: "An error occurred while creating the request", error });
+  }
+};
+
+export const transferCreditToReseller = async (req: Request, res: Response) => {
+  try {
+    const { requestId } = req.body;
+
+    const creditRequest = await RequestModel.findById({ _id: requestId });
+    if (!creditRequest) {
+      return res.status(404).json({ message: "Credit request not found" });
+    }
+
+    if (creditRequest.status !== "pending") {
+      return res.status(400).json({ message: "Credit request already processed" });
+    }
+
+    const { resellerId, creditAmount } = creditRequest;
+
+    if (!resellerId) {
+      return res.status(400).json({ message: "Invalid reseller ID" });
+    }
+
+    const reId = resellerId.toString();
+
+    const reseller = await Reseller.findOne({ resellerId: reId });
+    if (!reseller) {
+      return res.status(404).json({ message: "Reseller not found" });
+    }
+
+    const creditEntries = await Credit.find().sort({ createdAt: -1 }).limit(1);
+
+    if (!creditEntries.length) {
+      return res.status(404).json({ message: "Admin's credit entry not found" });
+    }
+
+    const creditEntry = creditEntries[0]; // Get the first (latest) credit entry
+
+    if (creditEntry.totalCredit < creditAmount) {
+      return res.status(400).json({ message: "Insufficient total credit" });
+    }
+
+    // Transfer credit to reseller
+    reseller.totalCredit = (reseller.totalCredit || 0) + creditAmount;
+    await reseller.save();
+
+    // Reduce total credit in the Credit model
+    creditEntry.totalCredit -= creditAmount;
+
+    // add the transaction in the history
+    creditEntry.history?.push({
+      credit: creditAmount,
+      action: "Deducted",
+      date: new Date(),
     });
-  } catch (err: any) {
-    next(err);
+
+    await creditEntry.save();
+
+    // Update the credit request status
+    creditRequest.status = "done";
+    await creditRequest.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Credit transferred successfully",
+      data: {
+        reseller,
+        creditRequest,
+        remainingCredit: creditEntry.totalCredit,
+      },
+    });
+  } catch (error) {
+    console.error("Error transferring credit:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while transferring credit",
+    });
   }
 };
 

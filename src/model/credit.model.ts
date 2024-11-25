@@ -22,6 +22,7 @@ const creditSchema = new Schema<Credit>(
         ref: "Admin",
     },
     history: [creditHistorySchema],
+    // transferHistory: [creditTransferSchema], // Nested schema for transfers
   
   },
   {
