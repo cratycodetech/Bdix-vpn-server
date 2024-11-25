@@ -5,7 +5,7 @@ export interface User {
     email: string;
     password: string;
     phone?: string; 
-    role?: "admin" | "reseller" | "user"; 
+    role?: "Admin" | "Reseller" | "User"; 
     status?: "ACTIVE" | "INACTIVE";
     createdAt?: Date; 
     updatedAt?: Date; 

@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../model/user.model";
+import Reseller from "../model/reseller.model";
+
 
 // get all users
 export const getAllUsers = async (_: Request, res: Response, next: NextFunction) => {
@@ -74,21 +76,37 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
 // update user role
 export const updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const { role } = req.body;
+
+    // Update the user's role
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { $set: { status: req.body.role } },
-      { new: true },
+      { $set: { role } },
+      { new: true } // Return the updated document
     );
 
     if (!user) {
-      throw new Error("user not found")
+      throw new Error("User not found");
+    }
+
+    // If the role is updated to "Reseller", create a corresponding reseller entry
+    if (user.role === "Reseller") {
+      // Check if a reseller entry already exists
+      const existingReseller = await Reseller.findOne({ resellerId: user._id });
+      if (!existingReseller) {
+        // Create a new reseller entry
+        await Reseller.create({
+          resellerId: user._id, // Reference to the User model
+          totalCredit: 0, // Default credit for new resellers
+        });
+      }
     }
 
     res.status(200).json({
-      message: " user role changed successfully",
+      message: "User role updated successfully",
       data: user,
     });
   } catch (err: any) {
-    next(err)
+    next(err);
   }
 };
