@@ -11,6 +11,8 @@ export async function jwtAuth(req: Request, res: Response, next: NextFunction) {
     req.path.endsWith("/login") ||
     req.path.endsWith("/signup") ||
     req.path.endsWith("/reset-password") ||
+    req.path.endsWith("/send-otp") ||
+    req.path.endsWith("/verify-otp") ||
     req.path.match(/^\/api\/v1\/server\/.+/) || // server REGEX
     !req.path.includes("/api/v1")
   ) {
