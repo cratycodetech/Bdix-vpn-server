@@ -35,6 +35,52 @@ export const getSingleUser = async (req: Request, res: Response, next: NextFunct
   }
 };
 
+// get admin 
+export const getAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.params;
+    if (!email) {
+      return res.status(400).json({ error: "Email parameter is required" });
+    }
+    const admin = await User.findOne({ email, role: 'Admin' });
+
+    if (!admin) {
+      return res.status(404).json({ error: "Admin not found with this email" });
+    }
+
+    res.status(200).json({
+      message: "Admin get successfully",
+      data: admin,
+    });
+  } catch (err: any) {
+    next(err)
+  }
+};
+
+// get reseller 
+export const getReseller = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email parameter is required" });
+    }
+    const reseller = await User.findOne({ email, role: 'Reseller' });
+
+    if (!reseller) {
+      return res.status(404).json({ error: "Reseller not found with this email" });
+    }
+
+
+    res.status(200).json({
+      message: "Reseller get successfully",
+      data: reseller,
+    });
+  } catch (err: any) {
+    next(err)
+  }
+};
+
 // update a user
 export const updateUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
