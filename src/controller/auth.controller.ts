@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import Blacklist from "../model/blacklist.model";
 import { generateToken, getBearerToken } from "./../utils/token";
 import User from "../model/user.model";
+import PremiumUser from "../model/PremiumUser.model";
 const crypto = require('crypto');
 const nodemailer = require('nodemailer'); 
 
@@ -18,6 +19,13 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
 
     const savedUser = await User.create(req.body);
     await savedUser.save({ validateBeforeSave: false });
+
+    await PremiumUser.create({
+      userId:savedUser._id, 
+      userType: "Free", 
+      subscriptionStatus: "Inactive",
+      credits: 0, 
+    });
 
     res.status(200).json({
       message: "User signup successful",
@@ -168,25 +176,27 @@ export const sendOTP = async (req: Request, res: Response,next: NextFunction) =>
 // Controller to verify OTP
 export const verifyOTP = (req: Request, res: Response) => {
   const { email, otp } = req.body;
+  console.log("hit here", email, otp);
 
   const storedOtpData = otpStore[email];
+  console.log("storedOtpData", storedOtpData);
 
   if (!storedOtpData) {
-    return res.status(200).json({
-      message: "Otp not found",
+    return res.status(404).json({
+      message: "OTP not found for this email.",
     });
   }
 
   if (storedOtpData.expiry < Date.now()) {
-    delete otpStore[email]; 
-    return res.status(200).json({
-      message: "Otp Expired",
+    delete otpStore[email];
+    return res.status(400).json({
+      message: "OTP has expired.",
     });
   }
 
   if (storedOtpData.otp !== otp) {
-    return res.status(200).json({
-      message: "Invalid Otp",
+    return res.status(400).json({
+      message: "Invalid OTP. Please try again.",
     });
   }
 
@@ -196,4 +206,3 @@ export const verifyOTP = (req: Request, res: Response) => {
     message: "OTP verified successfully!",
   });
 };
-
