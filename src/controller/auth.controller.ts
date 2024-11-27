@@ -134,7 +134,7 @@ const generateOTP = (): string => {
 };
 
 // Controller to send OTP
-export const sendOTP = async (req: Request, res: Response) => {
+export const sendOTP = async (req: Request, res: Response,next: NextFunction) => {
   const { email } = req.body;
 
   try {
@@ -157,10 +157,11 @@ export const sendOTP = async (req: Request, res: Response) => {
       text: `Your OTP code is: ${otp}`,
     });
 
-    res.status(200).send('OTP sent successfully!');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error sending OTP');
+    res.status(200).json({
+      message: "Otp sent successfully",
+    });
+  } catch (error:any) {
+    next(error)
   }
 };
 
@@ -171,20 +172,28 @@ export const verifyOTP = (req: Request, res: Response) => {
   const storedOtpData = otpStore[email];
 
   if (!storedOtpData) {
-    return res.status(400).send('OTP not found');
+    return res.status(200).json({
+      message: "Otp not found",
+    });
   }
 
   if (storedOtpData.expiry < Date.now()) {
     delete otpStore[email]; 
-    return res.status(400).send('OTP expired');
+    return res.status(200).json({
+      message: "Otp Expired",
+    });
   }
 
   if (storedOtpData.otp !== otp) {
-    return res.status(400).send('Invalid OTP');
+    return res.status(200).json({
+      message: "Invalid Otp",
+    });
   }
 
   delete otpStore[email];
 
-  res.status(200).send('OTP verified successfully!');
+  res.status(200).json({
+    message: "OTP verified successfully!",
+  });
 };
 
