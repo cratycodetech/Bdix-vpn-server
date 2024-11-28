@@ -3,7 +3,10 @@ import {
   createPremiumUser, 
   deletePremiumUser, 
   getAllPremiumUsers, 
-  getSinglePremiumUser, 
+  getSinglePremiumUser,
+  getPremiumUserFilterByEmail, 
+  getPremiumUserFilterBySubscriptionStatus,
+  getPremiumUserFilterByResellerReference,
   updatePremiumUser } from "../controller/premiumUser.controller";
 
 const router = Router();
@@ -13,6 +16,15 @@ router.get("/all", getAllPremiumUsers);
 
 // get single premium user
 router.get("/single/:id", getSinglePremiumUser);
+
+// get premium user filter by email
+router.get("/email", getPremiumUserFilterByEmail);
+
+// get premium user filter by subscriptionStatus
+router.get("/status", getPremiumUserFilterBySubscriptionStatus);
+
+// get premium user filter by resellerReference
+router.get("/reseller-reference",  getPremiumUserFilterByResellerReference);
 
 // create premium user
 router.post("/create", createPremiumUser);

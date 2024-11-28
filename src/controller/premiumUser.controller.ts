@@ -20,7 +20,7 @@ export const getAllPremiumUsers = async (_: Request, res: Response, next: NextFu
 // get single premium user
 export const getSinglePremiumUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const premiumUser = await PremiumUser.findById(req.params.id).populate("UserId");
+    const premiumUser = await PremiumUser.find({userId: req.params.id}).populate("userId");
     if (!premiumUser) {
       return res.status(404).json({ success: false, message: "Premium User not found" });
     }
@@ -33,21 +33,111 @@ export const getSinglePremiumUser = async (req: Request, res: Response, next: Ne
   }
 };
 
+//get all premium user filter by email
+export const getPremiumUserFilterByEmail = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email parameter is required" });
+    }
+
+    const user = await User.findOne({ email }).select("_id");
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const premiumUsers = await PremiumUser.find({ userId: user._id }) .populate("userId", "name email") // Populate user info (name, email)
+      .exec();
+
+    if (premiumUsers.length === 0) {
+      return res.status(404).json({ message: "No premium users found for this email" });
+    }
+
+    res.status(200).json(premiumUsers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//get premium user filter by subscriptionStatus
+export const getPremiumUserFilterBySubscriptionStatus = async (req: Request, res: Response) => {
+  try {
+    const { subscriptionStatus } = req.query;
+
+    if (!subscriptionStatus) {
+      return res.status(400).json({ message: "SubscriptionStatus parameter is required" });
+    }
+
+    // Filter PremiumUsers by subscriptionStatus
+    const premiumUsers = await PremiumUser.find({ subscriptionStatus });
+
+    if (premiumUsers.length === 0) {
+      return res.status(404).json({ message: "No premium users found with this subscription status" });
+    }
+
+    res.status(200).json(premiumUsers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//get premium user filter by resellerReference
+export const getPremiumUserFilterByResellerReference = async (req: Request, res: Response) => {
+  try {
+    const { resellerReference } = req.query;
+
+    if (!resellerReference) {
+      return res.status(400).json({ message: "ResellerReference parameter is required" });
+    }
+
+    // Filter PremiumUsers by resellerReference
+    const premiumUsers = await PremiumUser.find({ resellerReference });
+
+    if (premiumUsers.length === 0) {
+      return res.status(404).json({ message: "No premium users found with this reseller reference" });
+    }
+
+    res.status(200).json(premiumUsers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 // create new premium  user
 export const createPremiumUser  = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = req.body;
+      const { userId, subscriptionType, resellerReference } = req.body;
+  
+      if (!userId) {
+        return res.status(400).json({ message: "UserId is required" });
+      }
+  
+      const user = await User.findById(userId).select("email");
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      const premiumUser = await PremiumUser.findOneAndUpdate(
+        { userId },
+        {
+          userType: "Premium",
+          subscriptionType,
+          resellerReference,
+          subscriptionStatus: "Active",
+        },
+        { new: true, upsert: true }
+      );
 
-    if (Object.keys(data).length === 0) {
-      throw new Error("Data can't be empty")
-    }
-
-    const server = await PremiumUser.create(data);
-
-    res.status(201).json({
-      message: "Premium user created Successfully",
-      data: server,
-    });
+      res.status(200).json({
+        message: "User successfully subscribed",
+        userEmail: user.email,
+        premiumUser
+      });
   } catch (err: any) {
     next(err)
   }
