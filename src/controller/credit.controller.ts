@@ -3,6 +3,8 @@ import Credit from "../model/credit.model";
 import RequestModel from "../model/request.model";
 import Reseller from "../model/reseller.model";
 import User from "../model/user.model";
+import TransferHistory from "../model/transferHistory.model";
+import mongoose from "mongoose";
 
 // get all credits
 export const getAllCredit = async (_: Request, res: Response, next: NextFunction) => {
@@ -17,6 +19,23 @@ export const getAllCredit = async (_: Request, res: Response, next: NextFunction
     next(err)
   }
 };
+
+// get total credit 
+export const getTotalCredit = async (_: Request, res: Response, next: NextFunction) => {
+  try {
+
+    const creditEntries = await Credit.find().sort({ createdAt: -1 }).limit(1);
+
+    const creditEntry = creditEntries[0]; 
+    res.status(200).json({
+      message: "Credits get successfully",
+      data: creditEntry.fixedTotalCredit,
+    });
+  } catch (err: any) {
+    next(err)
+  }
+};
+
 
 // Get all credit requests
 export const getAllRequests = async (req: Request, res: Response) => {
@@ -49,6 +68,41 @@ export const getAllRequests = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching requests:", error);
     res.status(500).json({ message: "An error occurred while fetching requests", error });
+  }
+};
+
+export const countPendingRequestCredits = async (req: Request, res: Response) => {
+  try {
+    const pendingRequestCount = await RequestModel.countDocuments({ status: "pending" });
+
+    const pendingTotalCredit = await RequestModel.aggregate([
+      {
+        $match: { status: "pending" } 
+      },
+      {
+        $group: {
+          _id: null,
+          totalCredit: { $sum: "$creditAmount" } 
+        }
+      }
+    ]);
+
+    const totalCredit = pendingTotalCredit.length > 0 ? pendingTotalCredit[0].totalCredit : 0;
+
+    res.status(200).json({
+      success: true,
+      message: "Pending request count and total pending credit retrieved successfully",
+      data: {
+        pendingRequestCount,
+        pendingTotalCredit: totalCredit
+      },
+    });
+  } catch (error) {
+    console.error("Error counting pending credit requests:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while counting pending credit requests",
+    });
   }
 };
 
@@ -86,6 +140,7 @@ export const getCreditHistory = async (req: Request, res: Response) => {
   }
 };
 
+//get all credit history
 export const getAllCreditHistories = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const creditHistories = await Credit.find({}, { history: 1 });
@@ -135,7 +190,7 @@ export const addCredit = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
-//update Credit and maintain history
+//generate Credit or update credit and maintain history
 export const addCreditHistory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { adminId, action, credit } = req.body;
@@ -152,11 +207,13 @@ export const addCreditHistory = async (req: Request, res: Response, next: NextFu
     // Update totalCredit based on the action
     if (action === "Added") {
       creditData.totalCredit += credit;
+      creditData.fixedTotalCredit += credit;
     } else if (action === "Deducted") {
       if (creditData.totalCredit - credit < 0) {
         return res.status(400).json({ message: "Total credit cannot be negative." });
       }
       creditData.totalCredit -= credit;
+      creditData.fixedTotalCredit -= credit;
     } else {
       return res.status(400).json({ message: "Invalid action. Use 'Added' or 'Deducted'." });
     }
@@ -202,6 +259,7 @@ export const createCreditRequest = async (req: Request, res: Response) => {
   }
 };
 
+// transfer credit to reseller
 export const transferCreditToReseller = async (req: Request, res: Response) => {
   try {
     const { requestId } = req.body;
@@ -256,6 +314,12 @@ export const transferCreditToReseller = async (req: Request, res: Response) => {
 
     await creditEntry.save();
 
+    await TransferHistory.create({
+      creditAmount:creditAmount,
+      resellerId: reId,
+      transferDate: new Date(),
+    });
+
     // Update the credit request status
     creditRequest.status = "done";
     await creditRequest.save();
@@ -302,5 +366,62 @@ export const deleteCredit = async (req: Request, res: Response, next: NextFuncti
     });
   } catch (err: any) {
     next(err)
+  }
+};
+
+
+export const getMonthlyCreditSummary = async (req: Request, res: Response) => {
+  try {
+
+    const currentYear = new Date().getFullYear();
+    const totalTransferredCredit = await TransferHistory.aggregate([
+      {
+        $match: {
+          transferDate: {
+            $gte: new Date(`${currentYear}-01-01`),
+            $lte: new Date(`${currentYear}-12-31`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { year: { $year: "$transferDate" }, month: { $month: "$transferDate" } },
+          totalTransferred: { $sum: "$creditAmount" },
+        },
+      },
+      {
+        $project: {
+          year: "$_id.year",
+          month: "$_id.month",
+          totalTransferred: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    const availableCredit = await Credit.findOne()
+      .sort({ createdAt: -1 }) 
+      .select("totalCredit");
+
+    const summary = totalTransferredCredit.map((entry) => {
+      const month = `${entry.year}-${entry.month.toString().padStart(2, "0")}`;
+      return {
+        month,
+        totalTransferred: entry.totalTransferred,
+        availableCredit: availableCredit?.totalCredit || 0,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Monthly credit summary fetched successfully",
+      data: summary,
+    });
+  } catch (error) {
+    console.error("Error fetching monthly credit summary:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching the credit summary",
+    });
   }
 };

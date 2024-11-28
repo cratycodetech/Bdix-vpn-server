@@ -6,6 +6,8 @@ import {
     getAllRequests,
     addCreditHistory,
     getCreditHistory,
+    getMonthlyCreditSummary,
+    countPendingRequestCredits,
     transferCreditToReseller,
     getAllCreditHistories} from "../controller/credit.controller";
 
@@ -17,8 +19,14 @@ router.get("/all", getAllCredit);
 //get all credit request
 router.get("/all-request", getAllRequests);
 
-//get count all credit request
-//router.get("/count-request", getCountAllCreditRequest);
+//get count all pending credit request
+router.get("/pending-request-count", countPendingRequestCredits);
+
+//get total credit 
+router.get("/total-credit", getAllRequests);
+
+//get total credit summary monthly
+router.get("/credit-summary", getMonthlyCreditSummary);
 
 // // get single credit
 // router.get("/single/:id", getSingleCredit);
