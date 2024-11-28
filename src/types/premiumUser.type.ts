@@ -1,5 +1,5 @@
 export interface PremiumUser {
-    UserId: unknown; 
+    userId: unknown; 
     userType: "Premium" | "Free";
     subscriptionStatus: "Active" | "Expired" | "Inactive"; 
     subscriptionType: "Monthly" | "Yearly";

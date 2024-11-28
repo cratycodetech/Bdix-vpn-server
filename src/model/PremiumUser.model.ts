@@ -5,12 +5,12 @@ const ObjectId = Schema.Types.ObjectId;
 
 const premiumUserSchema = new Schema<PremiumUser>(
   {
-    UserId: {
+    userId: {
       type: ObjectId,
       ref: "User",
     },
-    userType: { type: String, enum: ["Premium", "Free"] },
-    subscriptionStatus: { type: String, enum: ["Active", "Expired", "Inactive"] },
+    userType: { type: String, enum: ["Premium", "Free"],default:"Free" },
+    subscriptionStatus: { type: String, enum: ["Active", "Expired", "Inactive"] ,default:"Inactive"},
     subscriptionType:{
         type: String,
         enum: ["Monthly", "Yearly"]
