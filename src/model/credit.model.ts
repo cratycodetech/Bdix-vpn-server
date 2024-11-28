@@ -21,6 +21,10 @@ const creditSchema = new Schema<Credit>(
         type: ObjectId,
         ref: "Admin",
     },
+    fixedTotalCredit:{
+        type: Number,
+        default: 0
+    },
     history: [creditHistorySchema],
     // transferHistory: [creditTransferSchema], // Nested schema for transfers
   
@@ -34,6 +38,7 @@ const creditSchema = new Schema<Credit>(
 creditSchema.pre("save", function (next) {
   if (this.isNew) {
     this.totalCredit = this.credit; 
+    this.fixedTotalCredit = this.credit;
   }
   next();
 });
@@ -41,3 +46,6 @@ creditSchema.pre("save", function (next) {
 
 const Credit: Model<Credit> = models?.Credit || model("Credit", creditSchema);
 export default Credit;
+
+
+
