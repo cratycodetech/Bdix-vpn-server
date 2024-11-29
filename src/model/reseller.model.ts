@@ -9,6 +9,7 @@ const resellerSchema = new Schema<ResellerType>(
       type: ObjectId,
       ref: "User",
     },
+    email:String,
     totalCredit: {
       type: Number,
       default: 0,
