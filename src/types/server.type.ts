@@ -7,5 +7,6 @@ export type Server= {
     ipAddress: string; 
     serverTag?: 'Instagram' | 'Google ads' ; 
     status:'active' | 'inactive';
+    password: string;
   }
   

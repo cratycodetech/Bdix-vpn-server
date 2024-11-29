@@ -1,7 +1,6 @@
 import { Model, model, models, Schema } from "mongoose";
 import { Server } from "../types/server.type";
 
-
 const serverSchema = new Schema<Server>(
   {
     serverName: {
@@ -32,7 +31,8 @@ const serverSchema = new Schema<Server>(
         type:String,
         enum: ['active', 'inactive'],
         default: 'active',
-    }
+    },
+    password: String
   },
   {
     timestamps: true,
