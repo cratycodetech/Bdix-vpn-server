@@ -3,6 +3,12 @@ import authRoutes from "./../routes/auth.route";
 import serverRoutes from "./../routes/server.route";
 import creditRoutes from "./../routes/credit.route";
 import userRoutes from "./../routes/user.route";
+import premiumUserRoutes from "./../routes/premiumUser.route";
+import resellerRoutes from "./../routes/reseller.route";
+import resellerDashboardRoutes from "./../routes/resellerDashboard.route";
+import userDashboardRoutes from "./../routes/userDashboard.route";
+
+
 
 
 
@@ -17,8 +23,11 @@ router.get("/", (_, res) => {
 // general Routes
 router.use("/auth", authRoutes);
 router.use("/user", userRoutes);
+router.use("/premium-user", premiumUserRoutes);
 router.use("/server", serverRoutes);
 router.use("/credit", creditRoutes);
+router.use("/reseller", resellerRoutes);
+router.use("/reseller-dashboard", resellerDashboardRoutes);
 
 
 

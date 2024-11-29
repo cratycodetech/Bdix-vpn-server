@@ -7,21 +7,21 @@ const requestSchema = new Schema<Request>(
     transactionId: {
       type: String,
       required: true,
-      unique: true, // Ensures every request has a unique transaction ID
+      unique: true, 
     },
     resellerId: {
       type: ObjectId,
-      refPath: "User", // Dynamically references either 'Reseller' or 'User'
+      refPath: "User", 
       required: true,
     },
     creditAmount: {
       type: Number,
       required: true,
-      min: [1, "Credit amount must be at least 1"], // Validation for minimum credit amount
+      min: [1, "Credit amount must be at least 1"], 
     },
     status: {
       type: String,
-      enum: ["pending", "done"], // Status of the request
+      enum: ["pending", "done"], 
       default: "pending",
     },
   },

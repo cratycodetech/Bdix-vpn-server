@@ -16,7 +16,10 @@ const premiumUserSchema = new Schema<PremiumUser>(
         enum: ["Monthly", "Yearly"]
     },
     credits: { type: Number, default: 0 },
-    resellerReference: String,
+    resellerReference:{
+        type: String,
+        ref: "User"
+    },
   },
   {
     timestamps: true,
