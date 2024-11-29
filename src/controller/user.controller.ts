@@ -122,28 +122,29 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
 // update user role
 export const updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { role } = req.body;
 
-    // Update the user's role
+    const { role } = req.body;
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { $set: { role } },
-      { new: true } // Return the updated document
+      { new: true } 
     );
 
     if (!user) {
       throw new Error("User not found");
     }
 
-    // If the role is updated to "Reseller", create a corresponding reseller entry
     if (user.role === "Reseller") {
-      // Check if a reseller entry already exists
+
       const existingReseller = await Reseller.findOne({ resellerId: user._id });
+      
       if (!existingReseller) {
-        // Create a new reseller entry
+        const email = user.email ;
+        
         await Reseller.create({
-          resellerId: user._id, // Reference to the User model
-          totalCredit: 0, // Default credit for new resellers
+          resellerId: user._id,
+          totalCredit: 0,
+          email: email, 
         });
       }
     }
