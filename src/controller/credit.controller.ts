@@ -369,7 +369,7 @@ export const deleteCredit = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-
+//total transfer credit according to month
 export const getMonthlyCreditSummary = async (req: Request, res: Response) => {
   try {
 

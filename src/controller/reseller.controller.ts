@@ -390,6 +390,7 @@ export const getTotalPremiumUsersForAllReseller = async (req: Request, res: Resp
           totalPremiumUsers: item.totalPremiumUsers,
           resellerEmail: userReseller ? userReseller.email : "No email",
           resellerName: userReseller ? userReseller.name : "Unknown Reseller",
+          resellerPhone: userReseller ? userReseller.phone : "Null",
           resellerCredit: reseller ? reseller.totalCredit : 0, 
         };
       })
