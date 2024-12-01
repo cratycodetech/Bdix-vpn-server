@@ -34,7 +34,7 @@ router.post("/create", createPremiumUser);
 router.put("/update/:id", updatePremiumUser);
 
 // update subscription status premium user
-router.put("/update/:status", updateSubscriptionStatus);
+router.put("/update/:id", updateSubscriptionStatus);
 
 //delete user
 router.delete("/delete/:id", deletePremiumUser);

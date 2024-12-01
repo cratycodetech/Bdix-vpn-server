@@ -5,7 +5,6 @@ import {
     createCreditRequest, 
     getAllRequests,
     addCreditHistory,
-    getCreditHistory,
     getMonthlyCreditSummary,
     countPendingRequestCredits,
     transferCreditToReseller,
