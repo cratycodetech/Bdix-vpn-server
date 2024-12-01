@@ -13,7 +13,7 @@ const premiumUserSchema = new Schema<PremiumUser>(
     subscriptionStatus: { type: String, enum: ["Active", "Expired", "Inactive"] ,default:"Inactive"},
     subscriptionType:{
         type: String,
-        enum: ["Monthly", "Yearly"]
+        enum: ["Monthly", "Yearly","half-yearly"]
     },
     credits: { type: Number, default: 0 },
     resellerReference:{
