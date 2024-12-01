@@ -9,6 +9,7 @@ import {
     filterPremiumUsersByResellerName,
     filterPremiumUsersByResellerCredit,
     filterPremiumUsersByTotalUsers,
+    getAllUsersForSingleReseller,
     getResellerDetails,
   } from '../controller/reseller.controller';
   
@@ -19,7 +20,7 @@ import {
   router.get('/total-resellers', getTotalResellersCount);
 
   // get count total premium users
-  router.get("/count",countTotalActivePremiumUsers );
+  router.get("/count",countTotalActivePremiumUsers);
 
   // get all filter premium users by resellerId
   router.get("/resellerId", filterPremiumUsersByResellerId);
@@ -47,5 +48,9 @@ import {
   
   //get details of a specific reseller (by ID)
   router.get('/:id', getResellerDetails);
+
+  // Route to get premium users for a single reseller by resellerId
+  router.get('/single/:resellerId', getAllUsersForSingleReseller);
+
 
 export default router;

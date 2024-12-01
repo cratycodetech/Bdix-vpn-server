@@ -412,4 +412,44 @@ export const getTotalPremiumUsersForAllReseller = async (req: Request, res: Resp
   }
 };
 
+// get users for a specific reseller by resellerId
+export const getAllUsersForSingleReseller = async (req: Request, res: Response, next: NextFunction) => {
 
+  try {
+    const resellerId = req.params.resellerId;
+
+    const premiumUsers = await PremiumUser.find({ resellerReference: resellerId })
+    .populate("userId", "name email").select("subscriptionStatus credits") 
+    .lean();
+
+    if (premiumUsers.length === 0) {
+      return res.status(404).json({ message: "No premium users found for this reseller" });
+    }
+
+    const reseller = await Reseller.findOne({ resellerId });
+
+    if (!reseller) {
+      return res.status(404).json({
+        message: `Reseller with ID ${resellerId} not found.`,
+        data: [],
+      });
+    }
+
+    const userReseller = await User.findById(resellerId);
+    const responseData = {
+      resellerId: resellerId,
+      resellerEmail: userReseller ? userReseller.email : "No email",
+      resellerName: userReseller ? userReseller.name : "Unknown Reseller",
+      resellerPhone: userReseller ? userReseller.phone : "Null",
+    };
+
+    return res.status(200).json({
+      totalPremiumUsers: premiumUsers.length,
+      reseller: responseData,
+      premiumUsers
+    });
+
+  } catch (error:any) {
+    return next(error); 
+  }
+};
