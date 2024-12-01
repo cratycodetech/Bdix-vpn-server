@@ -7,6 +7,7 @@ import {
   getPremiumUserFilterByEmail, 
   getPremiumUserFilterBySubscriptionStatus,
   getPremiumUserFilterByResellerReference,
+  updateSubscriptionStatus,
   updatePremiumUser } from "../controller/premiumUser.controller";
 
 const router = Router();
@@ -31,6 +32,9 @@ router.post("/create", createPremiumUser);
 
 // update premium user
 router.put("/update/:id", updatePremiumUser);
+
+// update subscription status premium user
+router.put("/update/:status", updateSubscriptionStatus);
 
 //delete user
 router.delete("/delete/:id", deletePremiumUser);

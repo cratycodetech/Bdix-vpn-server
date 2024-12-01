@@ -164,6 +164,34 @@ export const updatePremiumUser = async (req: Request, res: Response, next: NextF
   }
 };
 
+// update subscription status premium user 
+export const updateSubscriptionStatus = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found")
+    }
+
+    const updatedSubscriptionStatus = await PremiumUser.updateOne(
+      { userId: userId }, 
+      { $set: { subscriptionStatus: "Inactive" } } 
+    );
+    if (updatedSubscriptionStatus.modifiedCount > 0) {
+      console.log("User's subscription status updated to Inactive.");
+    }
+
+    res.status(200).json({
+      message: "subscription status update  successfully",
+      data: updatedSubscriptionStatus,
+    });
+  } catch (err: any) {
+    next(err)
+  }
+};
+
+
 // delete premium user
 export const deletePremiumUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
