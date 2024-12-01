@@ -3,23 +3,35 @@ import {
     getTotalResellersCount,
     getTotalCredits,
     countTotalActivePremiumUsers ,
+    filterPremiumUsersByResellerId,
     getLowCreditResellers,
-    findResellerByName,
-    getTotalPremiumUsersForAllResellers,
     getTotalPremiumUsersForAllReseller,
+    filterPremiumUsersByResellerName,
+    filterPremiumUsersByResellerCredit,
+    filterPremiumUsersByTotalUsers,
     getResellerDetails,
   } from '../controller/reseller.controller';
   
   const router = Router(); 
+
   
   //get total resellers count
   router.get('/total-resellers', getTotalResellersCount);
 
-  // Route to count total premium users
+  // get count total premium users
   router.get("/count",countTotalActivePremiumUsers );
 
-  // Route to find a reseller by name
-  router.get("/find-reseller/:name", findResellerByName);
+  // get all filter premium users by resellerId
+  router.get("/resellerId", filterPremiumUsersByResellerId);
+
+  // get all filter premium users by resellerName
+  router.get("/resellerName", filterPremiumUsersByResellerName);
+
+  // get all filter premium users by resellerCredit
+  router.get("/resellerCredit", filterPremiumUsersByResellerCredit);
+
+  // get all filter premium users by totalPremiumUsers
+  router.get("/totalUsers", filterPremiumUsersByTotalUsers);
 
   //get total users for all resellers
   //router.get('/users/count',getTotalPremiumUsersForAllResellers);
