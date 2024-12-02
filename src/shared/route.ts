@@ -7,6 +7,8 @@ import premiumUserRoutes from "./../routes/premiumUser.route";
 import resellerRoutes from "./../routes/reseller.route";
 import resellerDashboardRoutes from "./../routes/resellerDashboard.route";
 import userDashboardRoutes from "./../routes/userDashboard.route";
+import userCreditRequestRoutes from "./../routes/userCreditRequest.route";
+
 
 
 
@@ -29,6 +31,7 @@ router.use("/credit", creditRoutes);
 router.use("/reseller", resellerRoutes);
 router.use("/reseller-dashboard", resellerDashboardRoutes);
 router.use("/user-dashboard", userDashboardRoutes);
+router.use("/user-credit-request", userCreditRequestRoutes);
 
 
 
