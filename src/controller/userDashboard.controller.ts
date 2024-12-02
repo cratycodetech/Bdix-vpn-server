@@ -7,7 +7,7 @@ import PremiumUser from "../model/PremiumUser.model";
     try {
      const premiumUser = await PremiumUser.find({ userType: "Premium" }).populate({
         path: "userId",
-        select: "email name", 
+        select: "email name phone", 
       })
       .exec();;
   
@@ -28,7 +28,7 @@ import PremiumUser from "../model/PremiumUser.model";
     try {
      const users = await PremiumUser.find().populate({
         path: "userId",
-        select: "email name", 
+        select: "email name phone", 
       })
       .exec();;
   
@@ -47,7 +47,7 @@ import PremiumUser from "../model/PremiumUser.model";
     try {
      const normalUser = await PremiumUser.find({userType: "Free"}).populate({
         path: "userId",
-        select: "email name", 
+        select: "email name phone", 
       })
       .exec();;
   
