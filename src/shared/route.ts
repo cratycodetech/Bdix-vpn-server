@@ -28,6 +28,8 @@ router.use("/server", serverRoutes);
 router.use("/credit", creditRoutes);
 router.use("/reseller", resellerRoutes);
 router.use("/reseller-dashboard", resellerDashboardRoutes);
+router.use("/user-dashboard", userDashboardRoutes);
+
 
 
 
