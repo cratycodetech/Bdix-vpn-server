@@ -3,6 +3,7 @@ import {
   getCountAllUsers,
   getCountAllPremiumUsers,
   getCountNormalUsers,
+  getSingleResellerAvailableCredit
 } from "../controller/resellerDashboard.controller";
 
 const router = Router();
@@ -17,7 +18,7 @@ router.get("/count-premiumUser", getCountAllPremiumUsers);
 router.get("/count-normalUser", getCountNormalUsers);
 
 // get single reseller available credits
-router.get("/single/:id", getCountNormalUsers);
+router.get("/single/:id", getSingleResellerAvailableCredit);
 
 
 
