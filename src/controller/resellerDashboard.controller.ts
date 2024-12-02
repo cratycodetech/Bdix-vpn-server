@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../model/user.model";
 import PremiumUser from "../model/PremiumUser.model";
+import Reseller from "../model/reseller.model";
 
 
 // get  count all users
@@ -32,7 +33,6 @@ export const getCountAllPremiumUsers = async (req: Request, res: Response, next:
     }
   };
 
-
   // get  count all normal users
 export const getCountNormalUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -46,3 +46,21 @@ export const getCountNormalUsers = async (req: Request, res: Response, next: Nex
       next(err)
     }
   };
+
+
+  // get  count all normal users
+  export const getSingleResellerAvailableCredit = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params; 
+      
+      const reseller = await Reseller.findOne({ resellerId: id }).select('totalCredit');
+    
+      if (!reseller) {
+        return res.status(404).json({ message: 'Reseller not found' });
+      }
+  
+      return res.status(200).json({ totalCredit: reseller.totalCredit });
+    } catch (err: any) {
+      next(err)
+    }
+  };  
