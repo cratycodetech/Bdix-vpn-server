@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../model/user.model";
 import Reseller from "../model/reseller.model";
+import PremiumUser from "../model/PremiumUser.model";
 
 
 // get all users
@@ -122,30 +123,43 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
 // update user role
 export const updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
   try {
-
     const { role } = req.body;
+    const userId = req.params.id;
+
+    // Update the user's role in the User model
     const user = await User.findByIdAndUpdate(
-      req.params.id,
+      userId,
       { $set: { role } },
-      { new: true } 
+      { new: true }
     );
 
     if (!user) {
       throw new Error("User not found");
     }
 
-    if (user.role === "Reseller") {
+    // If the user is changing to 'Reseller'
+    if (role === "Reseller") {
 
+      // Check if the user already exists in the Reseller model
       const existingReseller = await Reseller.findOne({ resellerId: user._id });
       
+      // If the user does not already exist as a Reseller, create a new Reseller record
       if (!existingReseller) {
-        const email = user.email ;
-        
+        const email = user.email;
+
         await Reseller.create({
           resellerId: user._id,
           totalCredit: 0,
-          email: email, 
+          email: email,
         });
+
+         // Check if the user exists in PremiumUser model
+      const premiumUser = await PremiumUser.findOne({ userId: user._id });
+
+      if (premiumUser) {
+        // If the user is in PremiumUser, remove from PremiumUser model
+        await PremiumUser.deleteOne({ userId: user._id });
+      }
       }
     }
 
@@ -157,3 +171,60 @@ export const updateUserRole = async (req: Request, res: Response, next: NextFunc
     next(err);
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// export const updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+
+//     const { role } = req.body;
+//     const user = await User.findByIdAndUpdate(
+//       req.params.id,
+//       { $set: { role } },
+//       { new: true } 
+//     );
+
+//     if (!user) {
+//       throw new Error("User not found");
+//     }
+
+//     if (user.role === "Reseller") {
+
+//       const existingReseller = await Reseller.findOne({ resellerId: user._id });
+      
+//       if (!existingReseller) {
+//         const email = user.email ;
+        
+//         await Reseller.create({
+//           resellerId: user._id,
+//           totalCredit: 0,
+//           email: email, 
+//         });
+//       }
+//     }
+
+//     res.status(200).json({
+//       message: "User role updated successfully",
+//       data: user,
+//     });
+//   } catch (err: any) {
+//     next(err);
+//   }
+// };
