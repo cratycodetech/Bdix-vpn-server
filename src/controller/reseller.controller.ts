@@ -8,12 +8,53 @@ import User from "../model/user.model";
 export const getTotalResellersCount = async (req: Request, res: Response,next:NextFunction) => {
   try {
     const totalResellers = await Reseller.countDocuments();
-    return res.json({ totalResellers });
+    return res.json({ 
+      message: "Total resellers count retrieved successfully.",
+      data:totalResellers });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Error getting total resellers count" });
   }
 };
+
+//get total active resellers count
+
+
+export const countActiveResellers= async (req: Request, res: Response,next:NextFunction) => {
+  try {
+    const activeResellersCount = await Reseller.aggregate([
+      {
+        $lookup: {
+          from: "users",  
+          localField: "resellerId",
+          foreignField: "_id",  
+          as: "userDetails",  
+        },
+      },
+      {
+        $unwind: "$userDetails",
+      },
+      {
+        $match: {
+          "userDetails.status": "ACTIVE", 
+        },
+      },
+      {
+        $count: "activeResellersCount",
+      },
+    ]);
+
+    const count = activeResellersCount[0]?.activeResellersCount || 0;
+    //console.log("Active Resellers Count:", count);
+    return res.json({ 
+      message: "Total active resellers successfully.",
+      data:count });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Error getting total resellers count" });
+  }
+}
+
 
 //get total active premium users
 export const countTotalActivePremiumUsers = async (req: Request, res: Response, next: NextFunction) => {
