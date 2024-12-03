@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
     getTotalResellersCount,
+    getSingleResellerAvailableCredit,
     getTotalCredits,
     countTotalActivePremiumUsers ,
     filterPremiumUsersByResellerId,
@@ -20,8 +21,11 @@ import {
   //get total resellers count
   router.get('/total-resellers', getTotalResellersCount);
 
-   //get total active resellers count
-   router.get('/active/count', countActiveResellers);
+  // get single reseller available credits
+  router.get("/single-reseller/:id", getSingleResellerAvailableCredit);
+
+  //get total active resellers count
+  router.get('/active/count', countActiveResellers);
 
   // get count total premium users
   router.get("/count",countTotalActivePremiumUsers);

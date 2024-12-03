@@ -17,9 +17,28 @@ export const getTotalResellersCount = async (req: Request, res: Response,next:Ne
   }
 };
 
+ // get reseller total credit and available credit
+ export const getSingleResellerAvailableCredit = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params; 
+    
+    const reseller = await Reseller.findOne({ resellerId: id });
+  
+    if (!reseller) {
+      return res.status(404).json({ message: 'Reseller not found' });
+    }
+
+    return res.status(200).json({ 
+      massage:"get total credit and available credit successfully",
+      totalCredit: reseller.totalCredit,
+      availableCredit: reseller.availableCredit
+     });
+  } catch (err: any) {
+    next(err)
+  }
+}; 
+
 //get total active resellers count
-
-
 export const countActiveResellers= async (req: Request, res: Response,next:NextFunction) => {
   try {
     const activeResellersCount = await Reseller.aggregate([
