@@ -5,6 +5,7 @@ import Reseller from "../model/reseller.model";
 import User from "../model/user.model";
 import TransferHistory from "../model/transferHistory.model";
 import mongoose from "mongoose";
+import GeneratedCreditHistory from "../model/generatedCreditHistory.model";
 
 // get all credits
 export const getAllCredit = async (_: Request, res: Response, next: NextFunction) => {
@@ -27,9 +28,10 @@ export const getTotalCredit = async (_: Request, res: Response, next: NextFuncti
     const creditEntries = await Credit.find().sort({ createdAt: -1 }).limit(1);
 
     const creditEntry = creditEntries[0]; 
+    console.log("creditEntry", creditEntry)
     res.status(200).json({
       message: "Credits get successfully",
-      data: creditEntry.fixedTotalCredit,
+      data: creditEntry.totalCredit,
     });
   } catch (err: any) {
     next(err)
@@ -40,21 +42,9 @@ export const getTotalCredit = async (_: Request, res: Response, next: NextFuncti
 // Get all credit requests
 export const getAllRequests = async (req: Request, res: Response) => {
   try {
-    const { status, userType, search } = req.query;
-
-    const query: any = {};
-    if (status) {
-      query.status = status;
-    }
-    if (userType) {
-      query.userType = userType;
-    }
-    if (search) {
-      query.transactionId = { $regex: search, $options: "i" }; // Search by transactionId
-    }
-
+   
     // Populate the reseller's details from the User model
-    const requests = await RequestModel.find(query)
+    const requests = await RequestModel.find()
       .populate({
         path: "resellerId", 
         select: "name email phone role", 
@@ -71,6 +61,7 @@ export const getAllRequests = async (req: Request, res: Response) => {
   }
 };
 
+// Count pending request credits
 export const countPendingRequestCredits = async (req: Request, res: Response) => {
   try {
     const pendingRequestCount = await RequestModel.countDocuments({ status: "pending" });
@@ -140,10 +131,10 @@ export const getCreditHistory = async (req: Request, res: Response) => {
   }
 };
 
-//get all credit history
+//get all generated credit history
 export const getAllCreditHistories = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const creditHistories = await Credit.find({}, { history: 1 });
+    const creditHistories = await GeneratedCreditHistory.find({}).sort({ createdAt: -1 });
 
     if (!creditHistories || creditHistories.length === 0) {
       return res.status(404).json({ message: "No credit histories found." });
@@ -159,103 +150,49 @@ export const getAllCreditHistories = async (req: Request, res: Response, next: N
   }
 };
 
-// create new credit
-export const addCredit = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const data = req.body;
-    const { adminId, action, credit } = req.body;
+// Add or generated credit
+export const addCredits = async (req: Request, res: Response) => {
+  const { credit } = req.body;
 
-    if (Object.keys(data).length === 0) {
-      throw new Error("Data can't be empty")
-    }
-
-    const credit1 = await Credit.create(data);
-
-    const newHistory = {
-      action,
-      credit,
-      adminId,
-      date: new Date(),
-    };
-
-    credit1.history?.push(newHistory); 
-    await credit1.save();
-
-    res.status(201).json({
-      message: "Credit created Successfully",
-      data: credit1,
-    });
-  } catch (err: any) {
-    next(err)
+  if (!credit || credit < 50) {
+    return res.status(400).json({ message: "Credit must be at least 50" });
   }
-};
 
-//generate Credit or update credit and maintain history
-export const addCreditHistory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { adminId, action, credit } = req.body;
+    let existingCredit = await Credit.findOne({}); 
 
-    if (!adminId || !action || credit == null) {
-      return res.status(400).json({ message: "Admin ID, action, and credit are required." });
-    }
-
-    const creditData = await Credit.findOne({ adminId });
-    if (!creditData) {
-      return res.status(404).json({ message: "No credit record found for this admin." });
-    }
-
-    // Update totalCredit based on the action
-    if (action === "Added") {
-      creditData.totalCredit += credit;
-      creditData.fixedTotalCredit += credit;
-    } else if (action === "Deducted") {
-      if (creditData.totalCredit - credit < 0) {
-        return res.status(400).json({ message: "Total credit cannot be negative." });
-      }
-      creditData.totalCredit -= credit;
-      creditData.fixedTotalCredit -= credit;
+    console.log("existingCredit", existingCredit)
+    
+    if (!existingCredit) {
+      existingCredit = new Credit({
+        credit,
+        totalCredit: credit,
+        availableCredit: credit,
+      });
     } else {
-      return res.status(400).json({ message: "Invalid action. Use 'Added' or 'Deducted'." });
+      existingCredit.credit += credit;
+      existingCredit.totalCredit += credit;
+      existingCredit.availableCredit += credit;
     }
 
-    const newHistory = {
-      action,
-      credit,
-      date: new Date(),
-    };
-    creditData.history?.push(newHistory);
+    await existingCredit.save();
 
-    await creditData.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Total credit updated and history added successfully.",
-      data: creditData,
+    const newHistory = new GeneratedCreditHistory({
+      credit: existingCredit.credit,
+      totalCredit: existingCredit.totalCredit,
+      availableCredit: existingCredit.availableCredit,
     });
-  } catch (err) {
-    next(err);
-  }
-};
 
-// Create a new credit request
-export const createCreditRequest = async (req: Request, res: Response) => {
-  try {
-    const { transactionId, resellerId,  creditAmount } = req.body;
+    await newHistory.save();
 
-    if (!transactionId || !resellerId || !creditAmount) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-
-    const newRequest = await RequestModel.create(
-     req.body
-    );
-
-    const savedRequest = await newRequest.save();
-
-    res.status(201).json({ message: "Request created successfully", data: savedRequest });
+    return res.status(200).json({
+      message: "Credit added successfully",
+      totalCredit: existingCredit.totalCredit,
+      availableCredit: existingCredit.availableCredit,
+    });
   } catch (error) {
-    console.error("Error creating request:", error);
-    res.status(500).json({ message: "An error occurred while creating the request", error });
+    console.error(error);
+    return res.status(500).json({ message: "Server error, please try again later." });
   }
 };
 
@@ -287,6 +224,7 @@ export const transferCreditToReseller = async (req: Request, res: Response) => {
     }
 
     const creditEntries = await Credit.find().sort({ createdAt: -1 }).limit(1);
+    console.log("creditEntries", creditEntries)
 
     if (!creditEntries.length) {
       return res.status(404).json({ message: "Admin's credit entry not found" });
@@ -300,17 +238,18 @@ export const transferCreditToReseller = async (req: Request, res: Response) => {
 
     // Transfer credit to reseller
     reseller.totalCredit = (reseller.totalCredit || 0) + creditAmount;
+    reseller.availableCredit = (reseller.availableCredit || 0) + creditAmount;
     await reseller.save();
 
     // Reduce total credit in the Credit model
-    creditEntry.totalCredit -= creditAmount;
+    creditEntry.availableCredit -= creditAmount;
 
     // add the transaction in the history
-    creditEntry.history?.push({
-      credit: creditAmount,
-      action: "Deducted",
-      date: new Date(),
-    });
+    // creditEntry.history?.push({
+    //   credit: creditAmount,
+    //   action: "Deducted",
+    //   date: new Date(),
+    // });
 
     await creditEntry.save();
 
@@ -369,7 +308,7 @@ export const deleteCredit = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-//total transfer credit according to month
+//get total transfer credit according to month
 export const getMonthlyCreditSummary = async (req: Request, res: Response) => {
   try {
 

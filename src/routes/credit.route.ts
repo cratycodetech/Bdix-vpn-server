@@ -1,14 +1,13 @@
 import { Router } from "express";
 import { 
-    addCredit, 
+    addCredits, 
     getAllCredit ,
-    createCreditRequest, 
     getAllRequests,
-    addCreditHistory,
     getMonthlyCreditSummary,
     countPendingRequestCredits,
     transferCreditToReseller,
-    getAllCreditHistories} from "../controller/credit.controller";
+    getAllCreditHistories,
+    getTotalCredit} from "../controller/credit.controller";
 
 const router = Router();
 
@@ -16,32 +15,22 @@ const router = Router();
 router.get("/all", getAllCredit);
 
 //get all credit request
-router.get("/all-request", getAllRequests);
+router.get("/all-request", getAllRequests); //for table
 
 //get count all pending credit request
 router.get("/pending-request-count", countPendingRequestCredits);
 
 //get total credit 
-router.get("/total-credit", getAllRequests);
+router.get("/total-credit", getTotalCredit);
 
-//get total credit summary monthly
+//get total  transfer credit in monthly
 router.get("/credit-summary", getMonthlyCreditSummary);
 
-// // get single credit
-// router.get("/single/:id", getSingleCredit);
+//add or generate Credit
+router.post("/add", addCredits);
 
-// create new Credit
-router.post("/add", addCredit);
-
-// generate Credit
-router.post("/generate", addCreditHistory);
-
-// get all credit history
+// get all  generated credit history
 router.get("/history", getAllCreditHistories);
-
-
-// create new Credit request
-router.post("/credit-request", createCreditRequest);
 
 // create transfer Credit to reseller
 router.post("/credit-transfer", transferCreditToReseller);
