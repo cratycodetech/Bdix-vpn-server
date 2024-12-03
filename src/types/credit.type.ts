@@ -1,7 +1,7 @@
 export interface Credit {
     credit: number; 
+    availableCredit: number;
     totalCredit: number;
-    fixedTotalCredit: number;
     adminId?: string; 
     history?: {
       action: string;
