@@ -22,7 +22,7 @@ import {
   router.get('/total-resellers', getTotalResellersCount);
 
   // get single reseller available credits
-  router.get("/single-reseller/:id", getSingleResellerAvailableCredit);
+  router.get("/single-reseller/:email", getSingleResellerAvailableCredit);
 
   //get total active resellers count
   router.get('/active/count', countActiveResellers);

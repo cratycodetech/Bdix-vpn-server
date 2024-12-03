@@ -20,7 +20,14 @@ export const getTotalResellersCount = async (req: Request, res: Response,next:Ne
  // get reseller total credit and available credit
  export const getSingleResellerAvailableCredit = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params; 
+    const { email } = req.params; 
+
+    const user = await User.findOne({ email: email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const id = user._id;
     
     const reseller = await Reseller.findOne({ resellerId: id });
   
