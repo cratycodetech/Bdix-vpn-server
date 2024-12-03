@@ -13,6 +13,4 @@ router.get('/all', getAllRequests);
 router.post("/create", createCreditRequest);
 
 
-
-
 export default router;

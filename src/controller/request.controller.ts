@@ -17,7 +17,7 @@ export const getAllRequests = async (req:Request, res:Response, next:NextFunctio
 
 
 // Create a new credit request
-export const createCreditRequest = async (req: Request, res: Response) => {
+export const createCreditRequest = async (req: Request, res: Response,next:NextFunction) => {
     try {
       const { transactionId, resellerId,  creditAmount } = req.body;
   
@@ -32,9 +32,8 @@ export const createCreditRequest = async (req: Request, res: Response) => {
       const savedRequest = await newRequest.save();
   
       res.status(201).json({ message: "Request created successfully", data: savedRequest });
-    } catch (error) {
-      console.error("Error creating request:", error);
-      res.status(500).json({ message: "An error occurred while creating the request", error });
+    } catch (error: any) {
+      next(error)
     }
   };
   
