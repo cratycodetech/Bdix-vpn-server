@@ -10,7 +10,7 @@ import GeneratedCreditHistory from "../model/generatedCreditHistory.model";
 // get all credits
 export const getAllCredit = async (_: Request, res: Response, next: NextFunction) => {
   try {
-    const credits = await Credit.find({});
+    const credits = await Credit.find();
 
     res.status(200).json({
       message: "Credits get successfully",
