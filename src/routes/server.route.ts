@@ -1,17 +1,23 @@
 import { Router } from "express";
 import {
-  checkVpnStatus,
-  connectToVPNs,
+ // checkVpnStatus,
+  // connectToVPNs,
+  //connectToVPN,
   createServer,
   deleteServer,
   getAllServers,
   getAllServerStatus,
   getCountActiveServer,
   getSingleServer,
-  disconnectedVpn,
+  //disconnectedVpn,
+  //disconnectVPNHandler,
   updateServer,
   updateServerStatus,
+  checkVpnStatus,
+  connectToVPNs,
   getActiveUsers,
+  disconnectedVpn,
+  //getActiveUsers,
 } from "../controller/server.controller";
 
 const router = Router();
@@ -45,12 +51,12 @@ router.delete("/delete/:id", deleteServer);
 router.post('/connect', connectToVPNs);
 
 // Route to check VPN connection status
-router.get('/status', checkVpnStatus);
+ router.get('/status', checkVpnStatus);
 
 // Route to disconnect from the VPN
 router.post('/disconnect', disconnectedVpn);
 
 // Define route to get active users
-router.get('/active-users', getActiveUsers);
+ router.get('/active-users', getActiveUsers);
 
 export default router;

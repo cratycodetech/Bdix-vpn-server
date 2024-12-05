@@ -3,6 +3,7 @@ import Server from "./../model/server.model";
 import { exec } from 'child_process';  // For executing shell commands like ping or VPN control commands
 import dotenv from 'dotenv';
 import { pingServer } from "../utils/ping-server";
+import * as os from 'os'; 
 dotenv.config();
 
 // get all servers
@@ -150,6 +151,9 @@ export const updateServerStatus = async (req: Request, res: Response, next: Next
   }
 };
 
+
+//checking
+
 // Function to validate user credentials
 const authenticateUser = (username: string, password: string): boolean => {
   const storedUsername = process.env.VPN_USER;
@@ -157,9 +161,25 @@ const authenticateUser = (username: string, password: string): boolean => {
   return username === storedUsername && password === storedPassword;
 };
 
-//connection to the VPN
-export const connectToVPNs = async (req: Request, res: Response,next: NextFunction) => {
-  const { username, password, serverIP, protocol } = req.body;
+// In-memory storage for active users
+const activeUsers: string[] = [];
+
+// Helper function to execute system commands
+const executeCommand = (command: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    exec(command, { shell: '/bin/bash' }, (error, stdout, stderr) => {
+      if (error) {
+        reject(`Error executing command: ${stderr || error.message}`);
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
+};
+
+// Controller to connect to the VPN
+export const connectToVPNs = async (req: Request, res: Response) => {
+  const { username, password, serverIP, protocol,userId } = req.body;
 
   if (username !== 'root' || password !== 'vpnserver123456') {
     return res.status(401).json({ message: 'Invalid credentials' });
@@ -170,94 +190,173 @@ export const connectToVPNs = async (req: Request, res: Response,next: NextFuncti
   }
 
   try {
-    const isServerReachable = await pingServer(serverIP);
-
-    if (!isServerReachable) {
-      return res.status(500).json({ message: 'Failed to connect to the VPN server' });
+    if (!activeUsers.includes(userId)) {
+      activeUsers.push(userId); 
     }
 
-    return res.status(200).json({ message: 'Successfully connected to the VPN server' });
-  } catch (error:any) {
-    next(error)
+    return res.status(200).json({ message: `User ${username} successfully connected to the VPN server.` });
+  } catch (error :any) {
+    return res.status(500).json({ message: 'Error connecting to VPN', error: error.message });
   }
 };
 
-const VPN_SERVER_IP = process.env.VPN_SERVER_IP || '5.161.52.6'; 
-
-// get VPN Server Status
+// Get VPN Server Status
 export const checkVpnStatus = async (req: Request, res: Response) => {
-  exec(`ping -c 4 ${VPN_SERVER_IP}`, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error pinging server: ${error.message}`);
-      return res.status(500).json({ message: 'Failed to connect to the VPN server', error: error.message });
-    }
-    if (stderr) {
-      console.error(`Ping error: ${stderr}`);
-      return res.status(500).json({ message: 'Failed to connect to the VPN server', error: stderr });
-    }
+  const VPN_SERVER_IP = process.env.VPN_SERVER_IP || '5.161.52.6';
 
-    console.log(`Ping success: ${stdout}`);
-    return res.status(200).json({ message: 'VPN is connected', status: 'online', result: stdout });
-  });
+  try {
+    const pingCommand = os.platform() === 'win32' ? `ping -n 4 ${VPN_SERVER_IP}` : `ping -c 4 ${VPN_SERVER_IP}`;
+    const result = await executeCommand(pingCommand);
+    
+    return res.status(200).json({ message: 'VPN is connected', status: 'online', result });
+  } catch (error: any) {
+    return res.status(500).json({ message: 'Failed to connect to the VPN server', error: error.message });
+  }
 };
 
-// disconnecting from the VPN
+// Disconnect VPN (and Remove User from Active List)
 export const disconnectedVpn = async (req: Request, res: Response) => {
-  const { username, password } = req.body;
+  const { userId,username, password } = req.body;
 
-  if (username !== 'root' || password !== 'vpnserver123456') {
+  if (!userId||username !== 'root' || password !== 'vpnserver123456') {
     return res.status(401).json({ message: 'Invalid credentials' });
   }
 
   try {
-   exec('sudo systemctl stop openvpn@client.service', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error disconnecting VPN: ${error.message}`);
-      return res.status(500).json({ message: 'Failed to disconnect from the VPN server', error: error.message });
-    }
-    if (stderr) {
-      console.error(`Disconnection error: ${stderr}`);
-      return res.status(500).json({ message: 'Failed to disconnect from the VPN server', error: stderr });
+    const index = activeUsers.indexOf(userId);
+    if (index > -1) {
+      activeUsers.splice(index, 1); 
     }
 
-    console.log(`VPN disconnected: ${stdout}`);
-    return res.status(200).json({ message: 'VPN disconnected successfully', details: stdout });
-  });
-  } catch (err:any) {
-    return res.status(500).json({ message: 'Error disconnecting from VPN', error: err.message });
+    const disconnectCommand = os.platform() === 'linux' || os.platform() === 'darwin'
+      ? 'sudo systemctl stop openvpn@client.service'  
+      : 'taskkill /F /IM openvpn.exe'; 
+
+    await executeCommand(disconnectCommand);
+
+    return res.status(200).json({ message: `User ${username} successfully disconnected from the VPN.` });
+  } catch (error:any) {
+    return res.status(500).json({ message: 'Error disconnecting from VPN', error: error.message });
   }
 };
 
 
-
-// find active user from the VPN
-export const getActiveUsers  = async (req: Request, res: Response) => {
-
+// Controller to get active users
+export const getActiveUsers = async (req: Request, res: Response) => {
   try {
-   // Run the `who` command to get active users
-  exec('who', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error executing command: ${error.message}`);
-      return res.status(500).json({ message: 'Error fetching active users', error: error.message });
-    }
-
-    if (stderr) {
-      console.error(`stderr: ${stderr}`);
-      return res.status(500).json({ message: 'Error fetching active users', error: stderr });
-    }
-
-    // Parse the output and return a structured response
-    const activeUsers = stdout.split('\n').map(line => {
-      const [user, terminal, date, time, address] = line.split(/\s+/);
-      return { user, terminal, date, time, address };
-    }).filter(user => user.user); // Filter out any empty lines
-
-    return res.status(200).json({
-      message: 'Active users fetched successfully',
-      users: activeUsers
-    });
-  });
-  } catch (err:any) {
-    return res.status(500).json({ message: 'Error disconnecting from VPN', error: err.message });
+    return res.status(200).json({ message: 'Active users fetched successfully', users: activeUsers });
+  } catch (error:any) {
+    return res.status(500).json({ message: 'Error fetching active users', error: error.message });
   }
 };
+
+
+
+
+//connection to the VPN
+// export const connectToVPNs = async (req: Request, res: Response,next: NextFunction) => {
+//   const { username, password, serverIP, protocol } = req.body;
+
+//   if (username !== 'root' || password !== 'vpnserver123456') {
+//     return res.status(401).json({ message: 'Invalid credentials' });
+//   }
+
+//   if (protocol !== 'openvpn' && protocol !== 'wireguard') {
+//     return res.status(400).json({ message: 'Unsupported VPN protocol' });
+//   }
+
+//   try {
+//     const isServerReachable = await pingServer(serverIP);
+
+//     if (!isServerReachable) {
+//       return res.status(500).json({ message: 'Failed to connect to the VPN server' });
+//     }
+
+//     return res.status(200).json({ message: 'Successfully connected to the VPN server' });
+//   } catch (error:any) {
+//     next(error)
+//   }
+// };
+
+// const VPN_SERVER_IP = process.env.VPN_SERVER_IP || '5.161.52.6'; 
+
+// // get VPN Server Status
+// export const checkVpnStatus = async (req: Request, res: Response) => {
+//   exec(`ping -c 4 ${VPN_SERVER_IP}`, (error, stdout, stderr) => {
+//     if (error) {
+//       console.error(`Error pinging server: ${error.message}`);
+//       return res.status(500).json({ message: 'Failed to connect to the VPN server', error: error.message });
+//     }
+//     if (stderr) {
+//       console.error(`Ping error: ${stderr}`);
+//       return res.status(500).json({ message: 'Failed to connect to the VPN server', error: stderr });
+//     }
+
+//     console.log(`Ping success: ${stdout}`);
+//     return res.status(200).json({ message: 'VPN is connected', status: 'online', result: stdout });
+//   });
+// };
+
+// // disconnecting from the VPN
+// export const disconnectedVpn = async (req: Request, res: Response) => {
+//   const { username, password } = req.body;
+
+//   if (username !== 'root' || password !== 'vpnserver123456') {
+//     return res.status(401).json({ message: 'Invalid credentials' });
+//   }
+
+//   try {
+//    exec('sudo systemctl stop openvpn@client.service', (error, stdout, stderr) => {
+//     if (error) {
+//       console.error(`Error disconnecting VPN: ${error.message}`);
+//       return res.status(500).json({ message: 'Failed to disconnect from the VPN server', error: error.message });
+//     }
+//     if (stderr) {
+//       console.error(`Disconnection error: ${stderr}`);
+//       return res.status(500).json({ message: 'Failed to disconnect from the VPN server', error: stderr });
+//     }
+
+//     console.log(`VPN disconnected: ${stdout}`);
+//     return res.status(200).json({ message: 'VPN disconnected successfully', details: stdout });
+//   });
+//   } catch (err:any) {
+//     return res.status(500).json({ message: 'Error disconnecting from VPN', error: err.message });
+//   }
+// };
+
+
+
+// // find active user from the VPN
+// export const getActiveUsers  = async (req: Request, res: Response) => {
+
+//   try {
+//    // Run the `who` command to get active users
+//   exec('who', (error, stdout, stderr) => {
+//     if (error) {
+//       console.error(`Error executing command: ${error.message}`);
+//       return res.status(500).json({ message: 'Error fetching active users', error: error.message });
+//     }
+
+//     if (stderr) {
+//       console.error(`stderr: ${stderr}`);
+//       return res.status(500).json({ message: 'Error fetching active users', error: stderr });
+//     }
+
+//     // Parse the output and return a structured response
+//     const activeUsers = stdout.split('\n').map(line => {
+//       const [user, terminal, date, time, address] = line.split(/\s+/);
+//       return { user, terminal, date, time, address };
+//     }).filter(user => user.user); // Filter out any empty lines
+
+//     return res.status(200).json({
+//       message: 'Active users fetched successfully',
+//       users: activeUsers
+//     });
+//   });
+//   } catch (err:any) {
+//     return res.status(500).json({ message: 'Error disconnecting from VPN', error: err.message });
+//   }
+// };
+
+
+
