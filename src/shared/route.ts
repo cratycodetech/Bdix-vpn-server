@@ -10,6 +10,8 @@ import userDashboardRoutes from "./../routes/userDashboard.route";
 import userCreditRequestRoutes from "./../routes/userCreditRequest.route";
 import creditTransferToUserRoutes from "./../routes/creditTransferToUser.route"; 
 import requestRoutes from "../routes/request.route"; 
+import serverActiveUserRoutes from "../routes/serverActiveUser.route"; 
+
 
 
 const router = Router();
@@ -31,7 +33,7 @@ router.use("/reseller-dashboard", resellerDashboardRoutes);
 router.use("/user-dashboard", userDashboardRoutes);
 router.use("/user-credit-request", userCreditRequestRoutes);
 router.use("/transfer-credit-to-user", creditTransferToUserRoutes);
-
+router.use("/server-active-user", serverActiveUserRoutes);
 
 
 // Handle not found
