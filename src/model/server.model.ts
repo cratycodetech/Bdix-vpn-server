@@ -11,17 +11,17 @@ const serverSchema = new Schema<Server>(
         type: String,
         required: true,
     },
+    
+    protocal: {
+        type: String,
+    },
+    userName: {
+        type: String,
+    },
     serverLocation: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
-    CPUallocation: {
-        type: String,
-    },
-    memoryAllocation: {
-        type: String,
-      },
-     
     serverTag: {
         type: String,
         enum: ['Instagram', 'Google ads'],
