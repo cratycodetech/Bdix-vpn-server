@@ -4,6 +4,7 @@ import { exec } from 'child_process';  // For executing shell commands like ping
 import dotenv from 'dotenv';
 import { pingServer } from "../utils/ping-server";
 import * as os from 'os'; 
+import ServerActiveUser from "../model/serverAssignmentModel";
 dotenv.config();
 
 // get all servers
@@ -190,11 +191,30 @@ export const connectToVPNs = async (req: Request, res: Response) => {
   }
 
   try {
-    if (!activeUsers.includes(userId)) {
-      activeUsers.push(userId); 
-    }
+   const existingUser = await ServerActiveUser.findOne({ userId });
 
-    return res.status(200).json({ message: `User ${username} successfully connected to the VPN server.` });
+   if (existingUser) {
+
+    await ServerActiveUser.findOneAndUpdate(
+      { userId },
+      { 
+        $set: { 
+          userStatus: 'active', 
+          serverIP: serverIP 
+        }
+      },
+      { new: true } 
+    );
+  } else {
+
+    const newActiveUser = new ServerActiveUser({ 
+      userId, 
+      serverIP, 
+      userStatus: 'active' 
+    });
+    await newActiveUser.save(); 
+  }
+    return res.status(200).json({ message: `User ${userId} successfully connected to the VPN server.` });
   } catch (error :any) {
     return res.status(500).json({ message: 'Error connecting to VPN', error: error.message });
   }
@@ -223,10 +243,11 @@ export const disconnectedVpn = async (req: Request, res: Response) => {
   }
 
   try {
-    const index = activeUsers.indexOf(userId);
-    if (index > -1) {
-      activeUsers.splice(index, 1); 
-    }
+    const user = await ServerActiveUser.findOneAndUpdate(
+      { userId },
+      { $set: { userStatus: 'inactive' } },
+      { new: true } // Return the updated document (optional)
+    );
 
     const disconnectCommand = os.platform() === 'linux' || os.platform() === 'darwin'
       ? 'sudo systemctl stop openvpn@client.service'  
