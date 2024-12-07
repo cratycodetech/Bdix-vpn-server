@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import ServerActiveUser from "../model/serverAssignmentModel";
+import Server from "../model/server.model";
 
 
 export const getActiveServerUsers = async (req: Request, res: Response) => {
@@ -58,4 +59,50 @@ export const getActiveServerUsers = async (req: Request, res: Response) => {
   }
 };
 
-  
+// Controller to get all servers with active user count
+export const getAllServersWithActiveUserCount = async (req: Request, res: Response) => {
+  try {
+    // Aggregate to get servers with active user count and updatedAt
+    const servers = await Server.aggregate([
+      {
+        $lookup: {
+          from: 'serveractiveusers', // Name of the ServerActiveUser collection
+          localField: 'ipAddress', // Match the ipAddress of Server collection
+          foreignField: 'serverIP', // Match the serverIP field in ServerActiveUser collection
+          as: 'activeUsers', // We will now have an array of active users
+        },
+      },
+      {
+        $addFields: {
+          activeUserCount: {
+            $size: {
+              $filter: {
+                input: '$activeUsers', // The array of active users
+                as: 'user', // Each element in the array will be called 'user'
+                cond: { $eq: ['$$user.userStatus', 'active'] }, // Filter by active status
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0, // Exclude _id field
+          serverId: '$_id', // Rename _id to serverId
+          serverName: 1, // Include serverName
+          activeUserCount: 1, // Include activeUserCount
+          updatedAt: 1, // Include updatedAt
+        },
+      },
+    ]);
+
+    if (!servers || servers.length === 0) {
+      return res.status(404).json({ message: 'No servers found' });
+    }
+
+    res.status(200).json({ servers });
+  } catch (error) {
+    console.error('Error fetching servers with active user count:', error);
+    res.status(500).json({ message: 'Internal server error', error });
+  }
+};
