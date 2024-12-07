@@ -265,6 +265,7 @@ export const disconnectedVpn = async (req: Request, res: Response) => {
 // Controller to get active users
 export const getActiveUsers = async (req: Request, res: Response) => {
   try {
+    const activeUsers = await ServerActiveUser.find({ userStatus: 'active' });
     return res.status(200).json({ message: 'Active users fetched successfully', users: activeUsers });
   } catch (error:any) {
     return res.status(500).json({ message: 'Error fetching active users', error: error.message });
