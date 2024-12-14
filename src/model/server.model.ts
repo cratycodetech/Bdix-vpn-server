@@ -27,6 +27,14 @@ const serverSchema = new Schema<Server>(
         enum: ['Instagram', 'Google ads'],
         default: 'Google ads',
     },
+    receivedMbps:{
+        type: Number,
+        default: 0
+    },
+    transmittedMbps:{
+        type: Number,
+        default: 0
+    },
     status: {
         type:String,
         enum: ['active', 'inactive'],
