@@ -6,6 +6,7 @@ import { pingServer } from "../utils/ping-server";
 import * as os from 'os'; 
 import ServerActiveUser from "../model/serverAssignmentModel";
 dotenv.config();
+import si from 'systeminformation';
 
 // get all servers
 export const getAllServers = async (_: Request, res: Response, next: NextFunction) => {
@@ -179,46 +180,46 @@ const executeCommand = (command: string): Promise<string> => {
 };
 
 // Controller to connect to the VPN
-export const connectToVPNs = async (req: Request, res: Response) => {
-  const { username, password, serverIP, protocol,userId } = req.body;
+// export const connectToVPNs = async (req: Request, res: Response) => {
+//   const { username, password, serverIP, protocol,userId } = req.body;
 
-  if (username !== 'root' || password !== 'vpnserver123456') {
-    return res.status(401).json({ message: 'Invalid credentials' });
-  }
+//   if (username !== 'root' || password !== 'vpnserver123456') {
+//     return res.status(401).json({ message: 'Invalid credentials' });
+//   }
 
-  if (protocol !== 'openvpn' && protocol !== 'wireguard') {
-    return res.status(400).json({ message: 'Unsupported VPN protocol' });
-  }
+//   if (protocol !== 'openvpn' && protocol !== 'wireguard') {
+//     return res.status(400).json({ message: 'Unsupported VPN protocol' });
+//   }
 
-  try {
-   const existingUser = await ServerActiveUser.findOne({ userId });
+//   try {
+//    const existingUser = await ServerActiveUser.findOne({ userId });
 
-   if (existingUser) {
+//    if (existingUser) {
 
-    await ServerActiveUser.findOneAndUpdate(
-      { userId },
-      { 
-        $set: { 
-          userStatus: 'active', 
-          serverIP: serverIP 
-        }
-      },
-      { new: true } 
-    );
-  } else {
+//     await ServerActiveUser.findOneAndUpdate(
+//       { userId },
+//       { 
+//         $set: { 
+//           userStatus: 'active', 
+//           serverIP: serverIP 
+//         }
+//       },
+//       { new: true } 
+//     );
+//   } else {
 
-    const newActiveUser = new ServerActiveUser({ 
-      userId, 
-      serverIP, 
-      userStatus: 'active' 
-    });
-    await newActiveUser.save(); 
-  }
-    return res.status(200).json({ message: `User ${userId} successfully connected to the VPN server.` });
-  } catch (error :any) {
-    return res.status(500).json({ message: 'Error connecting to VPN', error: error.message });
-  }
-};
+//     const newActiveUser = new ServerActiveUser({ 
+//       userId, 
+//       serverIP, 
+//       userStatus: 'active' 
+//     });
+//     await newActiveUser.save(); 
+//   }
+//     return res.status(200).json({ message: `User ${userId} successfully connected to the VPN server.` });
+//   } catch (error :any) {
+//     return res.status(500).json({ message: 'Error connecting to VPN', error: error.message });
+//   }
+// };
 
 // Get VPN Server Status
 export const checkVpnStatus = async (req: Request, res: Response) => {
@@ -269,6 +270,94 @@ export const getActiveUsers = async (req: Request, res: Response) => {
     return res.status(200).json({ message: 'Active users fetched successfully', users: activeUsers });
   } catch (error:any) {
     return res.status(500).json({ message: 'Error fetching active users', error: error.message });
+  }
+};
+
+
+//checking bandwidth
+
+
+// Helper function to get network stats
+const getNetworkStats = async () => {
+  try {
+    const networkData = await si.networkStats();
+    return networkData;
+  } catch (error :any) {
+    throw new Error('Error fetching network stats: ' + error.message);
+  }
+};
+
+// Convert bytes to Mbps
+const convertBytesToMbps = (bytes: number) => {
+  return (bytes * 8) / 1_000_000; // Convert bytes to bits and then bits to Mbps
+};
+
+// Main endpoint to connect to the VPN and return bandwidth stats
+export const connectToVPNs = async (req: Request, res: Response) => {
+  const { username, password, serverIP, protocol, userId } = req.body;
+
+  // Validate the credentials
+  if (username !== 'root' || password !== 'vpnserver123456') {
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
+
+  // Validate the protocol
+  if (protocol !== 'openvpn' && protocol !== 'wireguard') {
+    return res.status(400).json({ message: 'Unsupported VPN protocol' });
+  }
+
+  try {
+    const existingUser = await ServerActiveUser.findOne({ userId });
+
+    if (existingUser) {
+      await ServerActiveUser.findOneAndUpdate(
+        { userId },
+        { 
+          $set: { 
+            userStatus: 'active', 
+            serverIP: serverIP 
+          }
+        },
+        { new: true }
+      );
+    } else {
+      const newActiveUser = new ServerActiveUser({ 
+        userId, 
+        serverIP, 
+        userStatus: 'active' 
+      });
+      await newActiveUser.save();
+    }
+
+    const currentStats = await getNetworkStats();
+
+    if (currentStats.length) {
+      const stats = currentStats[0]; 
+      const receivedMbps = convertBytesToMbps(stats.rx_bytes);
+      const transmittedMbps = convertBytesToMbps(stats.tx_bytes);
+
+       // Update the server model's bandwidth stats
+       await Server.findOneAndUpdate(
+        { ipAddress: serverIP },
+        {
+          receivedMbps: receivedMbps.toFixed(2),
+          transmittedMbps: transmittedMbps.toFixed(2),
+        },
+        { new: true }
+      );
+
+      return res.status(200).json({
+        message: `User ${userId} successfully connected to the VPN server.`,
+        currentBandwidth: {
+          receivedMbps: receivedMbps.toFixed(2),  
+          transmittedMbps: transmittedMbps.toFixed(2)  
+        },
+      });
+    } else {
+      return res.status(500).json({ message: 'No network stats available.' });
+    }
+  } catch (error: any) {
+    return res.status(500).json({ message: 'Error connecting to VPN', error: error.message });
   }
 };
 
