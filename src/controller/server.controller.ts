@@ -227,7 +227,7 @@ export const disconnectedVpn = async (req: Request, res: Response) => {
       if (!isProcessRunning) {
         console.log("openvpn.exe process not found, no action required.");
         return res.status(200).json({
-          message: "VPN process not running. User status updated to inactive.",
+          message: "User successfully disconnected from the VPN.",
         });
       }
     }
@@ -280,6 +280,7 @@ const convertBytesToMbps = (bytes: number) => {
 export const connectToVPNs = async (req: Request, res: Response) => {
   const { username, password, serverIP, protocol, userId } = req.body;
 
+  // Validate the credentials
   if (username !== 'root' || password !== 'vpnserver123456') {
     return res.status(401).json({ message: 'Invalid credentials' });
   }
