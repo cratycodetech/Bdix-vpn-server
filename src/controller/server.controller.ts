@@ -212,7 +212,7 @@ export const disconnectedVpn = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    console.log("User updated:", user);
+    //console.log("User updated:", user);
 
     const disconnectCommand =
       os.platform() === "linux" || os.platform() === "darwin"
@@ -232,7 +232,7 @@ export const disconnectedVpn = async (req: Request, res: Response) => {
       }
     }
 
-    console.log("Executing disconnect command:", disconnectCommand);
+    //console.log("Executing disconnect command:", disconnectCommand);
     const commandOutput = await executeCommand(disconnectCommand);
 
     return res.status(200).json({
