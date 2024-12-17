@@ -154,7 +154,7 @@ export const updateServerStatus = async (req: Request, res: Response, next: Next
 };
 
 
-//checking
+//checking server connection and disconnection
 
 // Function to validate user credentials
 const authenticateUser = (username: string, password: string): boolean => {
@@ -163,63 +163,20 @@ const authenticateUser = (username: string, password: string): boolean => {
   return username === storedUsername && password === storedPassword;
 };
 
-// In-memory storage for active users
-const activeUsers: string[] = [];
-
-// Helper function to execute system commands
+// Helper function to execute shell commands
 const executeCommand = (command: string): Promise<string> => {
   return new Promise((resolve, reject) => {
-    exec(command, { shell: '/bin/bash' }, (error, stdout, stderr) => {
+    exec(command, { shell: os.platform() === "win32" ? undefined : "/bin/bash" }, (error, stdout, stderr) => {
       if (error) {
-        reject(`Error executing command: ${stderr || error.message}`);
+        console.error("Error executing command:", command, error);
+        reject(stderr || error.message);
       } else {
-        resolve(stdout);
+        resolve(stdout.trim());
       }
     });
   });
 };
 
-// Controller to connect to the VPN
-// export const connectToVPNs = async (req: Request, res: Response) => {
-//   const { username, password, serverIP, protocol,userId } = req.body;
-
-//   if (username !== 'root' || password !== 'vpnserver123456') {
-//     return res.status(401).json({ message: 'Invalid credentials' });
-//   }
-
-//   if (protocol !== 'openvpn' && protocol !== 'wireguard') {
-//     return res.status(400).json({ message: 'Unsupported VPN protocol' });
-//   }
-
-//   try {
-//    const existingUser = await ServerActiveUser.findOne({ userId });
-
-//    if (existingUser) {
-
-//     await ServerActiveUser.findOneAndUpdate(
-//       { userId },
-//       { 
-//         $set: { 
-//           userStatus: 'active', 
-//           serverIP: serverIP 
-//         }
-//       },
-//       { new: true } 
-//     );
-//   } else {
-
-//     const newActiveUser = new ServerActiveUser({ 
-//       userId, 
-//       serverIP, 
-//       userStatus: 'active' 
-//     });
-//     await newActiveUser.save(); 
-//   }
-//     return res.status(200).json({ message: `User ${userId} successfully connected to the VPN server.` });
-//   } catch (error :any) {
-//     return res.status(500).json({ message: 'Error connecting to VPN', error: error.message });
-//   }
-// };
 
 // Get VPN Server Status
 export const checkVpnStatus = async (req: Request, res: Response) => {
@@ -235,30 +192,59 @@ export const checkVpnStatus = async (req: Request, res: Response) => {
   }
 };
 
-// Disconnect VPN (and Remove User from Active List)
-export const disconnectedVpn = async (req: Request, res: Response) => {
-  const { userId,username, password } = req.body;
 
-  if (!userId||username !== 'root' || password !== 'vpnserver123456') {
-    return res.status(401).json({ message: 'Invalid credentials' });
+//disconnect vpn
+export const disconnectedVpn = async (req: Request, res: Response) => {
+  const { userId, username, password } = req.body;
+
+  if (!userId || username !== "root" || password !== "vpnserver123456") {
+    return res.status(401).json({ message: "Invalid credentials" });
   }
 
   try {
     const user = await ServerActiveUser.findOneAndUpdate(
       { userId },
-      { $set: { userStatus: 'inactive' } },
-      { new: true } // Return the updated document (optional)
+      { $set: { userStatus: "inactive" } },
+      { new: true } 
     );
 
-    const disconnectCommand = os.platform() === 'linux' || os.platform() === 'darwin'
-      ? 'sudo systemctl stop openvpn@client.service'  
-      : 'taskkill /F /IM openvpn.exe'; 
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    await executeCommand(disconnectCommand);
+    console.log("User updated:", user);
 
-    return res.status(200).json({ message: `User ${username} successfully disconnected from the VPN.` });
-  } catch (error:any) {
-    return res.status(500).json({ message: 'Error disconnecting from VPN', error: error.message });
+    const disconnectCommand =
+      os.platform() === "linux" || os.platform() === "darwin"
+        ? "sudo systemctl stop openvpn@client.service"
+        : "taskkill /F /IM openvpn.exe";
+
+    if (os.platform() === "win32") {
+      const isProcessRunning = await executeCommand('tasklist | findstr /i "openvpn.exe"')
+        .then(() => true)
+        .catch(() => false);
+
+      if (!isProcessRunning) {
+        console.log("openvpn.exe process not found, no action required.");
+        return res.status(200).json({
+          message: "VPN process not running. User status updated to inactive.",
+        });
+      }
+    }
+
+    console.log("Executing disconnect command:", disconnectCommand);
+    const commandOutput = await executeCommand(disconnectCommand);
+
+    return res.status(200).json({
+      message: "User successfully disconnected from the VPN.",
+    });
+  } catch (error: any) {
+    console.error("Error disconnecting VPN:", error);
+
+    return res.status(500).json({
+      message: "Error disconnecting from VPN",
+      error: error.message,
+    });
   }
 };
 
@@ -273,9 +259,7 @@ export const getActiveUsers = async (req: Request, res: Response) => {
   }
 };
 
-
 //checking bandwidth
-
 
 // Helper function to get network stats
 const getNetworkStats = async () => {
@@ -289,19 +273,17 @@ const getNetworkStats = async () => {
 
 // Convert bytes to Mbps
 const convertBytesToMbps = (bytes: number) => {
-  return (bytes * 8) / 1_000_000; // Convert bytes to bits and then bits to Mbps
+  return (bytes * 8) / 1_000_000; 
 };
 
-// Main endpoint to connect to the VPN and return bandwidth stats
+// Main endpoint to connect to the VPN and return bandwidth status
 export const connectToVPNs = async (req: Request, res: Response) => {
   const { username, password, serverIP, protocol, userId } = req.body;
 
-  // Validate the credentials
   if (username !== 'root' || password !== 'vpnserver123456') {
     return res.status(401).json({ message: 'Invalid credentials' });
   }
 
-  // Validate the protocol
   if (protocol !== 'openvpn' && protocol !== 'wireguard') {
     return res.status(400).json({ message: 'Unsupported VPN protocol' });
   }
