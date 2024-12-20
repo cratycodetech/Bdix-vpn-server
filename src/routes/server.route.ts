@@ -14,7 +14,6 @@ import {
   updateServer,
   updateServerStatus,
   checkVpnStatus,
-  connectToVPNs,
   getActiveUsers,
   disconnectedVpn,
   connectToVPNss,
