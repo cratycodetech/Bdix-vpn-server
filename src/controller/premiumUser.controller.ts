@@ -148,12 +148,22 @@ export const updatePremiumUser = async (req: Request, res: Response, next: NextF
   try {
     const userId = req.params.id;
     const user = await User.findById(userId);
-
+    
+    console.log(user);
     if (!user) {
       throw new Error("User not found")
     }
 
-    const updatedUser = await PremiumUser.findByIdAndUpdate(userId, req.body);
+    // Update the PremiumUser by userId
+    const updatedUser = await PremiumUser.findOneAndUpdate(
+      { userId: userId }, 
+      req.body, 
+      { new: true } 
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Premium user not found" });
+    }
 
     res.status(200).json({
       message: "premium user updated successfully",
