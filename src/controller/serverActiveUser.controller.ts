@@ -52,7 +52,10 @@ export const getActiveServerUsers = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'No active users found' });
     }
 
-    res.status(200).json({ activeUsers });
+    res.status(200).json({
+      message:'active users fetched successfully',
+      count:activeUsers.length,
+      data: activeUsers });
   } catch (error) {
     console.error('Error fetching active users:', error);
     res.status(500).json({ message: 'Internal server error', error });
