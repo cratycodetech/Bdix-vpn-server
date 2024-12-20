@@ -54,9 +54,6 @@ router.post('/connect', connectToVPNss);
 // Route to check VPN connection status
  router.get('/status', checkVpnStatus);
 
- // Route to check VPN connection status
- router.get('/active-status', checkVpnStatus);
-
 // Route to disconnect from the VPN
 router.post('/disconnect', disconnectedVpn);
 
