@@ -6,7 +6,11 @@ import { pingServer } from "../utils/ping-server";
 import * as os from 'os'; 
 import ServerActiveUser from "../model/serverAssignmentModel";
 dotenv.config();
+import http from 'http';
+import { Server as SocketServer } from 'socket.io'; // Socket.IO Server
 import si from 'systeminformation';
+import { getSocketIO } from "../utils/socket";
+import logger from "node-color-log";
 
 // get all servers
 export const getAllServers = async (_: Request, res: Response, next: NextFunction) => {
@@ -275,6 +279,110 @@ const getNetworkStats = async () => {
 const convertBytesToMbps = (bytes: number) => {
   return (bytes * 8) / 1_000_000; 
 };
+
+
+const io = new SocketServer();
+let intervalId: NodeJS.Timeout;
+
+io.on('connection', (socket) => {
+  console.log('A user connected');
+  
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
+    clearInterval(intervalId); // Stop the bandwidth updates when the user disconnects
+  });
+});
+
+// Socket.IO for real-time communication
+
+export const connectToVPNss= async (req: Request, res: Response) => {
+  const { username, password, serverIP, protocol, userId } = req.body;
+
+  // Validate credentials
+  if (username !== "root" || password !== "vpnserver123456") {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
+  if (protocol !== "openvpn" && protocol !== "wireguard") {
+    return res.status(400).json({ message: "Unsupported VPN protocol" });
+  }
+
+  try {
+    const io = getSocketIO();
+    const namespace = io.of(`/user/${userId}`);
+
+    const existingUser = await ServerActiveUser.findOne({ userId });
+
+    if (existingUser) {
+      await ServerActiveUser.findOneAndUpdate(
+        { userId },
+        { 
+          $set: { 
+            userStatus: 'active', 
+            serverIP: serverIP 
+          }
+        },
+        { new: true }
+      );
+    } else {
+      const newActiveUser = new ServerActiveUser({ 
+        userId, 
+        serverIP, 
+        userStatus: 'active' 
+      });
+      await newActiveUser.save();
+    }
+
+    namespace.on("connection", (socket) => {
+      logger.info(`Client connected to namespace for user: ${userId}`);
+
+      // Emit bandwidth updates every 5 seconds
+      const interval = setInterval(async () => {
+        try {
+          const stats = await getNetworkStats();
+          const receivedMbps = convertBytesToMbps(stats[0].rx_bytes).toFixed(2);
+          const transmittedMbps = convertBytesToMbps(stats[0].tx_bytes).toFixed(2);
+
+          logger.info(`Emitting bandwidth update for user ${userId}:`, {
+            receivedMbps,
+            transmittedMbps,
+          });
+
+          // Update the server model's bandwidth stats
+       await Server.findOneAndUpdate(
+        { ipAddress: serverIP },
+        {
+          receivedMbps: receivedMbps,
+          transmittedMbps: transmittedMbps,
+        },
+        { new: true }
+      );
+
+          socket.emit("bandwidthUpdate", { receivedMbps, transmittedMbps });
+        } catch (err) {
+          logger.error(`Error emitting stats for user ${userId}:`, err);
+        }
+      }, 1000);
+
+      socket.on("disconnect", () => {
+        logger.info(`Client disconnected from namespace for user: ${userId}`);
+        clearInterval(interval);
+      });
+    });
+
+    res.status(200).json({
+      message: `User ${userId} successfully connected to the VPN server.`,
+    });
+  } catch (error: any) {
+    logger.error("Error in connectToVPN:", error);
+    res.status(500).json({ message: "Error connecting to VPN", error: error.message });
+  }
+};
+
+
+
+
+
 
 // Main endpoint to connect to the VPN and return bandwidth status
 export const connectToVPNs = async (req: Request, res: Response) => {

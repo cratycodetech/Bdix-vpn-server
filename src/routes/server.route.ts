@@ -17,6 +17,7 @@ import {
   connectToVPNs,
   getActiveUsers,
   disconnectedVpn,
+  connectToVPNss,
   //getActiveUsers,
 } from "../controller/server.controller";
 
@@ -48,7 +49,7 @@ router.delete("/delete/:id", deleteServer);
 
 //checking vpn connection
 // Route to connect to the VPN
-router.post('/connect', connectToVPNs);
+router.post('/connect', connectToVPNss);
 
 // Route to check VPN connection status
  router.get('/status', checkVpnStatus);
