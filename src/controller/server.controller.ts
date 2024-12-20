@@ -197,27 +197,46 @@ export const checkVpnStatus = async (req: Request, res: Response) => {
 };
 
 
-//disconnect vpn
+// // Get VPN Server Status
+// export const getActiveServerUsers = async (req: Request, res: Response) => {
+
+//   try {
+//     const activeUsers=ServerActiveUser.find({userStatus:'active'})
+    
+//     return res.status(200).json({ message: 'get all active users', status: 'online', result });
+//   } catch (error: any) {
+//     return res.status(500).json({ message: 'Failed to connect to the VPN server', error: error.message });
+//   }
+// };
+
+
 export const disconnectedVpn = async (req: Request, res: Response) => {
   const { userId, username, password } = req.body;
 
+  // Validate credentials
   if (!userId || username !== "root" || password !== "vpnserver123456") {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
   try {
+    const io = getSocketIO();
+    const namespace = io.of(`/user/${userId}`);
+
+    // Forcefully disconnect all active sockets for this user
+    namespace.disconnectSockets(true);
+
+    // Update user's status to inactive
     const user = await ServerActiveUser.findOneAndUpdate(
       { userId },
       { $set: { userStatus: "inactive" } },
-      { new: true } 
+      { new: true }
     );
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    //console.log("User updated:", user);
-
+    // Platform-specific disconnect command
     const disconnectCommand =
       os.platform() === "linux" || os.platform() === "darwin"
         ? "sudo systemctl stop openvpn@client.service"
@@ -236,22 +255,21 @@ export const disconnectedVpn = async (req: Request, res: Response) => {
       }
     }
 
-    //console.log("Executing disconnect command:", disconnectCommand);
-    const commandOutput = await executeCommand(disconnectCommand);
+    // Execute the disconnect command
+    await executeCommand(disconnectCommand);
 
-    return res.status(200).json({
-      message: "User successfully disconnected from the VPN.",
+    res.status(200).json({
+      message: `User ${userId} successfully disconnected from the VPN and marked inactive.`,
     });
   } catch (error: any) {
     console.error("Error disconnecting VPN:", error);
 
-    return res.status(500).json({
+    res.status(500).json({
       message: "Error disconnecting from VPN",
       error: error.message,
     });
   }
 };
-
 
 // Controller to get active users
 export const getActiveUsers = async (req: Request, res: Response) => {
@@ -295,7 +313,8 @@ io.on('connection', (socket) => {
 
 // Socket.IO for real-time communication
 
-export const connectToVPNss= async (req: Request, res: Response) => {
+
+export const connectToVPNss = async (req: Request, res: Response) => {
   const { username, password, serverIP, protocol, userId } = req.body;
 
   // Validate credentials
@@ -335,42 +354,65 @@ export const connectToVPNss= async (req: Request, res: Response) => {
 
     namespace.on("connection", (socket) => {
       logger.info(`Client connected to namespace for user: ${userId}`);
+      // Track connection state
+      let isConnected = true;
 
-      // Emit bandwidth updates every 5 seconds
+      //Emit bandwidth updates every second
       const interval = setInterval(async () => {
+        if (!isConnected) {
+          clearInterval(interval); // Stop the interval if disconnected
+          return;
+        }
+    
         try {
           const stats = await getNetworkStats();
           const receivedMbps = convertBytesToMbps(stats[0].rx_bytes).toFixed(2);
           const transmittedMbps = convertBytesToMbps(stats[0].tx_bytes).toFixed(2);
-
+    
           logger.info(`Emitting bandwidth update for user ${userId}:`, {
             receivedMbps,
             transmittedMbps,
           });
-
+    
           // Update the server model's bandwidth stats
-       await Server.findOneAndUpdate(
-        { ipAddress: serverIP },
-        {
-          receivedMbps: receivedMbps,
-          transmittedMbps: transmittedMbps,
-        },
-        { new: true }
-      );
-
+          await Server.findOneAndUpdate(
+            { ipAddress: serverIP },
+            {
+              receivedMbps: receivedMbps,
+              transmittedMbps: transmittedMbps,
+            },
+            { new: true }
+          );
+    
           socket.emit("bandwidthUpdate", { receivedMbps, transmittedMbps });
         } catch (err) {
           logger.error(`Error emitting stats for user ${userId}:`, err);
         }
       }, 1000);
 
-      socket.on("disconnect", () => {
+      
+      // Handle client disconnect
+      socket.on("disconnect", async () => {
         logger.info(`Client disconnected from namespace for user: ${userId}`);
+    
+        // Mark connection as inactive
+        isConnected = false;
         clearInterval(interval);
+    
+        try {
+          // Update user status to inactive in the database
+          await ServerActiveUser.findOneAndUpdate(
+            { userId },
+            { $set: { userStatus: 'inactive' } },
+            { new: true }
+          );
+    
+          logger.info(`User ${userId} marked as inactive.`);
+        } catch (err) {
+          logger.error(`Error marking user ${userId} as inactive:`, err);
+        }
       });
-    });
-
-    res.status(200).json({
+    });res.status(200).json({
       message: `User ${userId} successfully connected to the VPN server.`,
     });
   } catch (error: any) {
@@ -378,6 +420,92 @@ export const connectToVPNss= async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error connecting to VPN", error: error.message });
   }
 };
+
+
+
+// export const connectToVPNss= async (req: Request, res: Response) => {
+//   const { username, password, serverIP, protocol, userId } = req.body;
+
+//   // Validate credentials
+//   if (username !== "root" || password !== "vpnserver123456") {
+//     return res.status(401).json({ message: "Invalid credentials" });
+//   }
+
+//   if (protocol !== "openvpn" && protocol !== "wireguard") {
+//     return res.status(400).json({ message: "Unsupported VPN protocol" });
+//   }
+
+//   try {
+//     const io = getSocketIO();
+//     const namespace = io.of(`/user/${userId}`);
+
+//     const existingUser = await ServerActiveUser.findOne({ userId });
+
+//     if (existingUser) {
+//       await ServerActiveUser.findOneAndUpdate(
+//         { userId },
+//         { 
+//           $set: { 
+//             userStatus: 'active', 
+//             serverIP: serverIP 
+//           }
+//         },
+//         { new: true }
+//       );
+//     } else {
+//       const newActiveUser = new ServerActiveUser({ 
+//         userId, 
+//         serverIP, 
+//         userStatus: 'active' 
+//       });
+//       await newActiveUser.save();
+//     }
+
+//     namespace.on("connection", (socket) => {
+//       logger.info(`Client connected to namespace for user: ${userId}`);
+
+//       // Emit bandwidth updates every 5 seconds
+//       const interval = setInterval(async () => {
+//         try {
+//           const stats = await getNetworkStats();
+//           const receivedMbps = convertBytesToMbps(stats[0].rx_bytes).toFixed(2);
+//           const transmittedMbps = convertBytesToMbps(stats[0].tx_bytes).toFixed(2);
+
+//           logger.info(`Emitting bandwidth update for user ${userId}:`, {
+//             receivedMbps,
+//             transmittedMbps,
+//           });
+
+//           // Update the server model's bandwidth stats
+//        await Server.findOneAndUpdate(
+//         { ipAddress: serverIP },
+//         {
+//           receivedMbps: receivedMbps,
+//           transmittedMbps: transmittedMbps,
+//         },
+//         { new: true }
+//       );
+
+//           socket.emit("bandwidthUpdate", { receivedMbps, transmittedMbps });
+//         } catch (err) {
+//           logger.error(`Error emitting stats for user ${userId}:`, err);
+//         }
+//       }, 1000);
+
+//       socket.on("disconnect", () => {
+//         logger.info(`Client disconnected from namespace for user: ${userId}`);
+//         clearInterval(interval);
+//       });
+//     });
+
+//     res.status(200).json({
+//       message: `User ${userId} successfully connected to the VPN server.`,
+//     });
+//   } catch (error: any) {
+//     logger.error("Error in connectToVPN:", error);
+//     res.status(500).json({ message: "Error connecting to VPN", error: error.message });
+//   }
+// };
 
 
 

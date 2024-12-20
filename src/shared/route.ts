@@ -12,6 +12,8 @@ import creditTransferToUserRoutes from "./../routes/creditTransferToUser.route";
 import requestRoutes from "../routes/request.route"; 
 import serverActiveUserRoutes from "../routes/serverActiveUser.route"; 
 import historyRoutes from "../routes/history.route"; 
+import subscriptionRoutes from "../routes/subscriptionUser.route"; 
+
 
 
 
@@ -37,6 +39,7 @@ router.use("/user-credit-request", userCreditRequestRoutes);
 router.use("/transfer-credit-to-user", creditTransferToUserRoutes);
 router.use("/server-active-user", serverActiveUserRoutes);
 router.use("/history", historyRoutes);
+router.use("/subscription", subscriptionRoutes);
 
 
 // Handle not found
