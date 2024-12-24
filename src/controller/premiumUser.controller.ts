@@ -6,7 +6,10 @@ import PremiumUser from "../model/PremiumUser.model";
 // get all premium users
 export const getAllPremiumUsers = async (_: Request, res: Response, next: NextFunction) => {
   try {
-    const premiumUsers = await PremiumUser.find()
+    const premiumUsers = await PremiumUser.find() .populate({
+      path: "userId",
+      model: "User", 
+    });
 
     res.status(200).json({
       message: " premium users get successfully",
