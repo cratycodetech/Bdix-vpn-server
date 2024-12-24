@@ -245,7 +245,7 @@ export const connectToVPNss = async (req: Request, res: Response) => {
   const { username, password, serverIP, protocol, userId } = req.body;
 
   // Validate credentials
-  if (username !== "root" || password !== "vpnserver123456") {
+  if (username !== "root" || password !== "0evAecCGZjqUcWc") {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
@@ -349,7 +349,7 @@ export const disconnectedVpn = async (req: Request, res: Response) => {
   const { userId, username, password } = req.body;
 
   // Validate credentials
-  if (!userId || username !== "root" || password !== "vpnserver123456") {
+  if (!userId || username !== "root" || password !== "0evAecCGZjqUcWc") {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
