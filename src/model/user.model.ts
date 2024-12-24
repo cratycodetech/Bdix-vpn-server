@@ -25,10 +25,13 @@ const userSchema = new Schema<User>(
       enum: ["Admin", "Reseller","User"],
       default: "User",
     },
+    resetToken: String,
+    resetTokenExpiry: Date,    
     status: {
       type: String,
       enum: ["ACTIVE", "INACTIVE"],
       default: "ACTIVE",
+
     },
   },
   {
