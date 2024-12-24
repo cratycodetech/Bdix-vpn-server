@@ -146,10 +146,10 @@ export const sendOTP = async (req: Request, res: Response,next: NextFunction) =>
   const { email } = req.body;
 
   try {
-    const user=await User.findOne({email})
-    if(user){
-      throw new Error("Email already exist.please try another email");
-    }
+    // const user=await User.findOne({email})
+    // if(user){
+    //   throw new Error("Email already exist.please try another email");
+    // }
 
 
     const otp = generateOTP();
@@ -211,4 +211,96 @@ export const verifyOTP = (req: Request, res: Response) => {
   res.status(200).json({
     message: "OTP verified successfully!",
   });
+};
+
+
+
+
+export const requestPasswordReset = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body;
+
+    // Find the user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Generate a reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    // Store the token (hashed) and expiration in the user's record
+    const tokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+    user.resetToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    user.resetTokenExpiry = tokenExpiry;
+    await user.save();
+
+    // Send the reset link via email
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const message = `Click the link to reset your password: ${resetURL}`;
+
+    await transporter.sendMail({
+      to: email,
+      subject: "Password Reset Request",
+      text: message,
+    });
+
+    res.status(200).json({ message: "Reset link sent to email" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+export const resetPasswords = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { token, newPassword, confirmPassword } = req.body;
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    // Hash the token to match the stored hash
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // Find the user with the matching reset token and check expiration
+    const user = await User.findOne({
+      resetToken: hashedToken,
+      resetTokenExpiry: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    // Update the password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+
+    // Clear the reset token and expiry
+    user.resetToken = "";
+    user.resetTokenExpiry = null as Date | null;
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (err) {
+    next(err);
+  }
 };
