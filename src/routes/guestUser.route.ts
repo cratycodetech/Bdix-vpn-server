@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
     getAllGuestUser,
     createGuestUser, 
-} from "../controller/questUser.controller";
+} from "../controller/guestUser.controller";
 
 const router = Router();
 
