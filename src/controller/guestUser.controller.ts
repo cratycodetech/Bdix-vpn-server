@@ -9,6 +9,7 @@ export const getAllGuestUser = async (req:Request, res:Response, next:NextFuncti
     return res.status(200).json({ 
     success: true,
     message: "Get all guest user  successfully",
+    count:guestUsers.length,
     data: guestUsers });
   } catch (error) {
     next(error)

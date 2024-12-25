@@ -62,6 +62,13 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       email: user.email
     });
 
+    // const userId=user._id.toString()
+    // console.log(userId)
+
+   // Check if the user has a premium user record
+   const premiumUser = await PremiumUser.findOne({ userId: user._id.toString() });
+   const userType = premiumUser?.userType|| null;
+
     const { password: pwd, ...info } = user.toObject();
 
     res.status(200).json({
@@ -69,6 +76,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       data: {
         ...info,
         token,
+        userType
       },
     });
   } catch (err: any) {
