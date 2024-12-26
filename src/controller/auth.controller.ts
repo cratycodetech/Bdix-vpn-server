@@ -154,10 +154,10 @@ export const sendOTP = async (req: Request, res: Response,next: NextFunction) =>
   const { email } = req.body;
 
   try {
-    // const user=await User.findOne({email})
-    // if(user){
-    //   throw new Error("Email already exist.please try another email");
-    // }
+    const user=await User.findOne({email})
+    if(user){
+      throw new Error("Email already exist.please try another email");
+    }
 
 
     const otp = generateOTP();
