@@ -6,7 +6,7 @@ import {
   getReseller,
   getSingleUser,
   updateUser,
-  updateUserRole,
+ // updateUserRole,
 } from "../controller/user.controller";
 
 const router = Router();
@@ -27,10 +27,10 @@ router.get("/reseller/:email", getReseller);
 router.put("/update-profile/:id", updateUser);
 
 // update user role
-router.patch("/change-role/:id", updateUserRole);
+//router.patch("/change-role/:id", updateUserRole);
 
 //update premium user
-router.patch("/update-premium/:id", updateUserRole);
+//router.patch("/update-premium/:id", updateUserRole);
 
 //delete user
 router.delete("/delete/:id", deleteUser);
