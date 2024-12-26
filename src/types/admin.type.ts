@@ -1,10 +1,8 @@
 export type Admin = {
   _id: string;
-  name: string;
-  email: string;
-  password: string;
-  role: "admin";
-  status: "ACTIVE" | "INACTIVE";
+  adminId:unknown;
+  email:string;
+  image:string;
   createdAt: Date;
   updatedAt: Date;
 };
