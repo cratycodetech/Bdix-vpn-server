@@ -75,7 +75,7 @@ export const getPremiumUserFilterBySubscriptionStatus = async (req: Request, res
     }
 
     // Filter PremiumUsers by subscriptionStatus
-    const premiumUsers = await PremiumUser.find({ subscriptionStatus });
+    const premiumUsers = await PremiumUser.find({ subscriptionStatus }).populate("userId", "email name phone password role status");
 
     if (premiumUsers.length === 0) {
       return res.status(404).json({ message: "No premium users found with this subscription status" });
@@ -98,7 +98,8 @@ export const getPremiumUserFilterByResellerReference = async (req: Request, res:
     }
 
     // Filter PremiumUsers by resellerReference
-    const premiumUsers = await PremiumUser.find({ resellerReference });
+    const premiumUsers = await PremiumUser.find({ resellerReference }).populate("userId", "email name phone password role status");
+    ;
 
     if (premiumUsers.length === 0) {
       return res.status(404).json({ message: "No premium users found with this reseller reference" });
