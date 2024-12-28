@@ -8,10 +8,8 @@ import Admin from "../model/admin.model";
 // get all users
 export const getAllUsers = async (_: Request, res: Response, next: NextFunction) => {
   try {
-    // Fetch all users
     const users = await User.find();
 
-    // Prepare the response data with role-specific information
     const userData = await Promise.all(
       users.map(async (user) => {
         let roleData = {};
@@ -59,12 +57,64 @@ export const getSingleUser = async (req: Request, res: Response, next: NextFunct
       throw new Error("User Not found")
     }
 
+    let additionalInfo = {};
+
+    if (user.role === "Admin") {
+      const adminDetails = await Admin.findOne({ userId: user._id });
+      additionalInfo = adminDetails || { message: "No additional details for admin found" };
+    } else if (user.role === "Reseller") {
+      const resellerDetails = await Reseller.findOne({ userId: user._id });
+      additionalInfo = resellerDetails || { message: "No additional details for reseller found" };
+    } else if (user.role === "User") {
+      const premiumDetails = await PremiumUser.findOne({ userId: user._id });
+      additionalInfo = premiumDetails || { message: "No premium details found for user" };
+    }
+
     res.status(200).json({
-      message: "User get successfully",
-      data: user,
+      message: "get user by Id successfully",
+      user,
+      additionalInfo,
     });
   } catch (err: any) {
     next(err)
+  }
+};
+
+export const getUserByEmail = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.params; 
+    console.log(email);
+
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    let additionalInfo = {};
+
+    if (user.role === "Admin") {
+      const adminDetails = await Admin.findOne({ userId: user._id });
+      additionalInfo = adminDetails || { message: "No additional details for admin found" };
+    } else if (user.role === "Reseller") {
+      const resellerDetails = await Reseller.findOne({ userId: user._id });
+      additionalInfo = resellerDetails || { message: "No additional details for reseller found" };
+    } else if (user.role === "User") {
+      const premiumDetails = await PremiumUser.findOne({ userId: user._id });
+      additionalInfo = premiumDetails || { message: "No premium details found for user" };
+    }
+
+    res.status(200).json({
+      message: "get user by email successfully",
+      user,
+      additionalInfo,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: "An error occurred", details: error.message });
   }
 };
 
@@ -244,6 +294,9 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
     next(err)
   }
 };
+
+
+
 
 // update user role
 // export const updateUserRole = async (req: Request, res: Response, next: NextFunction) => {

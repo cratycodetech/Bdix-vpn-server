@@ -5,6 +5,7 @@ import {
   getAllUsers,
   getReseller,
   getSingleUser,
+  getUserByEmail,
   updateUser,
  // updateUserRole,
 } from "../controller/user.controller";
@@ -16,6 +17,9 @@ router.get("/all", getAllUsers);
 
 // get single user
 router.get("/single/:id", getSingleUser);
+
+// get user filter by email
+router.get("/:email", getUserByEmail);
 
 // get admin
 router.get("/admin/:email", getAdmin);
