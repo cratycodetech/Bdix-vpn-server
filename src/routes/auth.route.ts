@@ -5,7 +5,7 @@ import {
   resetPassword,
   signup,
   login,
-  sendOTP,
+  sendOtpBeforeSignup,
   verifyOTP,
   requestPasswordReset,
   resetPasswords,
@@ -29,7 +29,7 @@ router.delete("/logout", logout);
 router.post("/reset-password", resetPassword);
 
 // Route to send OTP
-router.post('/send-otp', sendOTP);
+router.post('/send-otp', sendOtpBeforeSignup);
 
 // Route to verify OTP
 router.post('/verify-otp', verifyOTP);

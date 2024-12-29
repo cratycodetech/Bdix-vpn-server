@@ -113,39 +113,69 @@ export const getPremiumUserFilterByResellerReference = async (req: Request, res:
 };
 
 // create new premium  user
-export const createPremiumUser  = async (req: Request, res: Response, next: NextFunction) => {
+export const createPremiumUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-      const { userId, subscriptionType, resellerReference } = req.body;
-  
-      if (!userId) {
-        return res.status(400).json({ message: "UserId is required" });
-      }
-  
-      const user = await User.findById(userId).select("email");
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-  
-      const premiumUser = await PremiumUser.findOneAndUpdate(
-        { userId },
-        {
-          userType: "Premium",
-          subscriptionType,
-          resellerReference,
-          subscriptionStatus: "Active",
-        },
-        { new: true, upsert: true }
-      );
+    const { userId, subscriptionType, resellerReference } = req.body;
 
-      res.status(200).json({
-        message: "User successfully subscribed",
-        userEmail: user.email,
-        premiumUser
+    if (!userId) {
+      return res.status(400).json({ message: "UserId is required" });
+    }
+
+    const user = await User.findById(userId).select("email");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!subscriptionType || !["3 month", "6 month", "1 year"].includes(subscriptionType)) {
+      return res.status(400).json({ message: "Invalid subscription type" });
+    }
+
+    // Calculate startDate and endDate based on subscriptionType
+    const startDate = new Date();
+    let endDate = new Date(startDate);
+    switch (subscriptionType) {
+      case "3 month":
+        endDate.setMonth(endDate.getMonth() + 3);
+        break;
+      case "6 month":
+        endDate.setMonth(endDate.getMonth() + 6);
+        break;
+      case "1 year":
+        endDate.setFullYear(endDate.getFullYear() + 1);
+        break;
+    }
+
+    // If the subscription has expired based on the current date, set status to "Expired"
+    const currentDate = new Date();
+    if (endDate <= currentDate) {
+      return res.status(400).json({
+        message: "Subscription end date cannot be earlier than the current date. Please select a valid subscription type or again buy the subscription."
       });
+    }
+
+    const premiumUser = await PremiumUser.findOneAndUpdate(
+      { userId },
+      {
+        userType: "Premium",
+        subscriptionType,
+        resellerReference,
+        subscriptionStatus: "Active",
+        startDate,
+        endDate,
+      },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({
+      message: "User successfully subscribed",
+      userEmail: user.email,
+      premiumUser,
+    });
   } catch (err: any) {
-    next(err)
+    next(err);
   }
 };
+
 
 // update premium user 
 export const updatePremiumUser = async (req: Request, res: Response, next: NextFunction) => {
