@@ -4,7 +4,9 @@ export interface PremiumUser {
     subscriptionStatus: "Active" | "Expired" | "Inactive"; 
     subscriptionType: "Monthly" | "Yearly";
     credits: number; 
-    resellerReference: string; 
+    resellerReference: unknown; 
+    startDate: Date;
+    endDate: Date;
     createdAt?: Date; 
     updatedAt?: Date; 
   }

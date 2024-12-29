@@ -13,13 +13,15 @@ const premiumUserSchema = new Schema<PremiumUser>(
     subscriptionStatus: { type: String, enum: ["Active", "Expired", "Inactive"] ,default:"Inactive"},
     subscriptionType:{
         type: String,
-        enum: ["Monthly", "Yearly","Half-Yearly"]
+        enum: ["3 month", "6 month","1 year"]
     },
     credits: { type: Number, default: 0 },
     resellerReference:{
-        type: String,
+        type: ObjectId,
         ref: "User"
     },
+    startDate: { type: Date, default: Date.now },
+    endDate: { type: Date, default: Date.now },
   },
   {
     timestamps: true,
