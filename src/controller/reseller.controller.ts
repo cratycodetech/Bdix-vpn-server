@@ -4,10 +4,9 @@ import PremiumUser from "../model/PremiumUser.model";
 import User from "../model/user.model";
 
 
-//get total resellers count
+//get all reseller and total resellers count
 export const getAllResellers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Fetch all resellers and populate user info
     const resellers = await Reseller.find()
       .populate({ path: "resellerId", select: "name email password role status phone" })
       .exec();
@@ -423,16 +422,24 @@ export const getLowCreditResellers = async (req: Request, res: Response) => {
 export const getResellerDetails = async (req: Request, res: Response) => {
   const resellerId = req.params.id;
   try {
-    const reseller = await Reseller.findById(resellerId).populate("resellerId", "name email");
+    const reseller = await Reseller.find({resellerId:resellerId})
+      .populate({ path: "resellerId", select: "name email password role status" });
+
     if (!reseller) {
       return res.status(404).json({ message: "Reseller not found" });
     }
-    return res.json({ reseller });
+
+    return res.json({
+      message: "Reseller details retrieved successfully",
+      data:reseller,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Error fetching reseller details" });
   }
 };
+
+
 function next(err: any) {
   throw new Error("Function not implemented.");
 }
