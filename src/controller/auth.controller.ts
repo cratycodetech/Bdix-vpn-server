@@ -27,8 +27,10 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
       credits: 0, 
     });
 
+    await sendOtpEmail(email);
+
     res.status(200).json({
-      message: "User signup successful",
+      message: "Signup successful. Verify your email using the OTP sent.",
     });
   } catch (err: any) {
     next(err)
@@ -150,7 +152,56 @@ const generateOTP = (): string => {
 };
 
 // Controller to send OTP
-export const sendOTP = async (req: Request, res: Response,next: NextFunction) => {
+
+// Reusable function to send OTP
+export const sendOtpEmail = async (email: string) => {
+  try {
+    const otp = generateOTP();
+    const expiry = Date.now() + 10 * 60 * 1000; 
+    otpStore[email] = { otp, expiry };
+
+    // Configure email transport
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // Send OTP email
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Verify Your Email",
+      text: `Your OTP is ${otp}. It is valid for 10 minutes.`,
+    });
+
+
+    // const transporter = nodemailer.createTransport({
+    //   service: 'gmail',
+    //   auth: {
+    //     user: process.env.EMAIL_USER,
+    //     pass: process.env.EMAIL_PASS,
+    //   },
+    // });
+
+    // await transporter.sendMail({
+    //   from: process.env.EMAIL_USER,
+    //   to: email,
+    //   subject: 'Your OTP for 2FA',
+    //   text: `Your OTP code is: ${otp}`,
+    // });
+
+    console.log(`OTP sent to ${email}: ${otp}`);
+    return { success: true, message: "OTP sent successfully" };
+  } catch (error) {
+    console.error("Error sending OTP email:", error);
+    throw new Error("Failed to send OTP email");
+  }
+};
+
+export const sendOtpBeforeSignup = async (req: Request, res: Response,next: NextFunction) => {
   const { email } = req.body;
 
   try {
@@ -159,25 +210,7 @@ export const sendOTP = async (req: Request, res: Response,next: NextFunction) =>
       throw new Error("Email already exist.please try another email");
     }
 
-
-    const otp = generateOTP();
-    const expiry = Date.now() + 10 * 60 * 1000; 
-    otpStore[email] = { otp, expiry };
-
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Your OTP for 2FA',
-      text: `Your OTP code is: ${otp}`,
-    });
+    await sendOtpEmail(email);
 
     res.status(200).json({
       message: "Otp sent successfully",
