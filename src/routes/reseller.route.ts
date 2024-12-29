@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {
-    getTotalResellersCount,
+    getAllResellers,
     getSingleResellerAvailableCredit,
     getTotalCredits,
     countTotalActivePremiumUsers ,
@@ -18,8 +18,8 @@ import {
   const router = Router(); 
 
   
-  //get total resellers count
-  router.get('/total-resellers', getTotalResellersCount);
+  //get all reseller info and total count resellers
+  router.get('/all',getAllResellers);
 
   // get single reseller available credits
   router.get("/single-reseller/:email", getSingleResellerAvailableCredit);

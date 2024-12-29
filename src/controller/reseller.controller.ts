@@ -5,17 +5,23 @@ import User from "../model/user.model";
 
 
 //get total resellers count
-export const getTotalResellersCount = async (req: Request, res: Response,next:NextFunction) => {
+export const getAllResellers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const totalResellers = await Reseller.countDocuments();
-    return res.json({ 
-      message: "Total resellers count retrieved successfully.",
-      data:totalResellers });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Error getting total resellers count" });
+    // Fetch all resellers and populate user info
+    const resellers = await Reseller.find()
+      .populate({ path: "resellerId", select: "name email password role status phone" })
+      .exec();
+
+    res.status(200).json({
+      message: "Resellers fetched successfully",
+      count: resellers.length,
+      data:resellers,
+    });
+  } catch (err) {
+    next(err);
   }
 };
+
 
  // get reseller total credit and available credit
  export const getSingleResellerAvailableCredit = async (req: Request, res: Response, next: NextFunction) => {
