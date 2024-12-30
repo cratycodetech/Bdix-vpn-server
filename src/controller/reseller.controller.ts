@@ -21,6 +21,36 @@ export const getAllResellers = async (req: Request, res: Response, next: NextFun
   }
 };
 
+// Function to get all resellers and their user count
+export const getAllReseller = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Fetch all resellers
+    const resellers = await Reseller.find()
+      .populate({ path: "resellerId", select: "name email password role status phone" })
+      .exec();
+
+    // Fetch user count for each reseller
+    const resellersWithUserCount = await Promise.all(
+      resellers.map(async (reseller) => {
+        const userCount = await PremiumUser.countDocuments({ resellerReference: reseller._id });
+        return {
+          reseller,
+          userCount,
+        };
+      })
+    );
+
+    res.status(200).json({
+      message: "Resellers and their user counts fetched successfully",
+      count: resellersWithUserCount.length,
+      data: resellersWithUserCount,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 
  // get reseller total credit and available credit
  export const getSingleResellerAvailableCredit = async (req: Request, res: Response, next: NextFunction) => {

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
     getAllResellers,
+    getAllReseller ,
     getSingleResellerAvailableCredit,
     getTotalCredits,
     countTotalActivePremiumUsers ,
@@ -19,8 +20,7 @@ import {
 
   
   //get all reseller info and total count resellers
-  router.get('/all',getAllResellers);
-
+  router.get('/all', getAllReseller )
   //get details of a specific reseller (by ID)
   router.get('/:id', getResellerDetails);
 
