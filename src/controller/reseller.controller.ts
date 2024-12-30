@@ -32,7 +32,8 @@ export const getAllReseller = async (req: Request, res: Response, next: NextFunc
     // Fetch user count for each reseller
     const resellersWithUserCount = await Promise.all(
       resellers.map(async (reseller) => {
-        const userCount = await PremiumUser.countDocuments({ resellerReference: reseller._id });
+        //console.log("reseller", reseller.resellerId);
+        const userCount = await PremiumUser.countDocuments({ resellerReference: reseller.resellerId });
         return {
           reseller,
           userCount,
