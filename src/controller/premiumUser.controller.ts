@@ -126,7 +126,7 @@ export const createPremiumUser = async (req: Request, res: Response, next: NextF
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (!subscriptionType || !["3 month", "6 month", "1 year"].includes(subscriptionType)) {
+    if (!subscriptionType || !["1 month","3 month", "6 month", "1 year"].includes(subscriptionType)) {
       return res.status(400).json({ message: "Invalid subscription type" });
     }
 
@@ -134,6 +134,9 @@ export const createPremiumUser = async (req: Request, res: Response, next: NextF
     const startDate = new Date();
     let endDate = new Date(startDate);
     switch (subscriptionType) {
+      case "1 month":
+        endDate.setMonth(endDate.getMonth() + 1);
+        break;
       case "3 month":
         endDate.setMonth(endDate.getMonth() + 3);
         break;

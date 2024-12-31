@@ -30,7 +30,12 @@ export const getAllReseller = async (req: Request, res: Response, next: NextFunc
 
     const resellersWithUserCount = await Promise.all(
       resellers.map(async (reseller) => {
-        //console.log("reseller", reseller.resellerId);
+        if (!reseller.resellerId) {
+          await Reseller.deleteOne({ _id: reseller._id });
+          await User.deleteOne({ _id: reseller.resellerId });
+          return null; 
+        }
+
         const userCount = await PremiumUser.countDocuments({ resellerReference: reseller.resellerId });
         return {
           reseller,
@@ -39,15 +44,19 @@ export const getAllReseller = async (req: Request, res: Response, next: NextFunc
       })
     );
 
+    // Filter out any null entries resulting from deleted resellers
+    const filteredResellersWithUserCount = resellersWithUserCount.filter(Boolean);
+
     res.status(200).json({
       message: "Resellers and their user counts fetched successfully",
-      count: resellersWithUserCount.length,
-      data: resellersWithUserCount,
+      count: filteredResellersWithUserCount.length,
+      data: filteredResellersWithUserCount,
     });
   } catch (err) {
     next(err);
   }
 };
+
 
 
 
