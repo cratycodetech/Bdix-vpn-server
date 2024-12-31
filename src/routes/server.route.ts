@@ -48,7 +48,8 @@ router.patch("/change-status/:id", updateServerStatus);
 //delete user
 router.delete("/delete/:id", deleteServer);
 
- router.get("/realtime/:serverId", getServerData);
+//get server load data
+router.get("/realtime/:serverId", getServerData);
 //checking vpn connection
 // Route to connect to the VPN
 router.post('/connect', connectToVPNss);
