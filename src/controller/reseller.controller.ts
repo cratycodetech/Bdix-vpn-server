@@ -24,12 +24,10 @@ export const getAllResellers = async (req: Request, res: Response, next: NextFun
 // Function to get all resellers and their user count
 export const getAllReseller = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Fetch all resellers
     const resellers = await Reseller.find()
       .populate({ path: "resellerId", select: "name email password role status phone" })
       .exec();
 
-    // Fetch user count for each reseller
     const resellersWithUserCount = await Promise.all(
       resellers.map(async (reseller) => {
         //console.log("reseller", reseller.resellerId);
