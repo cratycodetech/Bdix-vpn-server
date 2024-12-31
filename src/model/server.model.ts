@@ -40,7 +40,10 @@ const serverSchema = new Schema<Server>(
         enum: ['active', 'inactive'],
         default: 'active',
     },
-    password: String
+    password: String,
+    
+    connectedUsers: { type: Number, default: 0 },
+    lastUpdated: { type: Date, default: Date.now },
   },
   {
     timestamps: true,

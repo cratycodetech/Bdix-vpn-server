@@ -10,5 +10,7 @@ export type Server= {
     transmittedMbps?: number;
     status:'active' | 'inactive';
     password: string;
+    connectedUsers?: number;
+    lastUpdated?: Date
   }
   
