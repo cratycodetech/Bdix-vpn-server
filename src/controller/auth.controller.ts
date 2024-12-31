@@ -7,10 +7,12 @@ import PremiumUser from "../model/PremiumUser.model";
 const crypto = require('crypto');
 const nodemailer = require('nodemailer'); 
 
+let flag = false;
+
 // signup
 export const signup = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email } = req.body;
+    const { email,flag } = req.body;
     const user = await User.findOne({ email: email });
 
     if (user) {
@@ -27,11 +29,11 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
       credits: 0, 
     });
 
-    const signupUser = await User.findOne({ email: email });
+   
 
-    if (signupUser?.otp === true) {
+    if (flag === true) {
       return res.status(400).json({
-        message: "User already exists and email is verified.",
+        message: "User already verified by email.",
       });
     }
 
@@ -229,57 +231,35 @@ export const sendOtpBeforeSignup = async (req: Request, res: Response,next: Next
 };
 
 // Controller to verify OTP
-export const verifyOTP = async (req: Request, res: Response) => {
+export const verifyOTP = (req: Request, res: Response) => {
   const { email, otp } = req.body;
+  const storedOtpData = otpStore[email];
 
-  try {
-    const storedOtpData = otpStore[email];
-
-    if (!storedOtpData) {
-      return res.status(404).json({
-        message: "OTP not found for this email.",
-      });
-    }
-
-    if (storedOtpData.expiry < Date.now()) {
-      delete otpStore[email];
-      return res.status(400).json({
-        message: "OTP has expired.",
-      });
-    }
-
-    if (storedOtpData.otp !== otp) {
-      return res.status(400).json({
-        message: "Invalid OTP. Please try again.",
-      });
-    }
-
-    const user = await User.findOneAndUpdate(
-      { email },
-      { otp: true },
-      { new: true } 
-    );
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found.",
-      });
-    }
-
-    delete otpStore[email]; 
-
-    return res.status(200).json({
-      message: "OTP verified successfully!",
-      user, 
-    });
-  } catch (err) {
-    console.error("Error verifying OTP:", err);
-    return res.status(500).json({
-      message: "An error occurred during OTP verification.",
+  if (!storedOtpData) {
+    return res.status(404).json({
+      message: "OTP not found for this email.",
     });
   }
-};
 
+  if (storedOtpData.expiry < Date.now()) {
+    delete otpStore[email];
+    return res.status(400).json({
+      message: "OTP has expired.",
+    });
+  }
+
+  if (storedOtpData.otp !== otp) {
+    return res.status(400).json({
+      message: "Invalid OTP. Please try again.",
+    });
+  }
+
+  delete otpStore[email];
+
+  res.status(200).json({
+    message: "OTP verified successfully!",
+  });
+};
 
 
 export const requestPasswordReset = async (
