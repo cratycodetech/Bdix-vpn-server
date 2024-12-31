@@ -428,18 +428,20 @@ export const filterPremiumUsersByTotalUsers = async (req: Request, res: Response
 // };
 
 //get total available credits for all resellers
-export const getTotalCredits = async (req: Request, res: Response) => {
+export const getTotalAvailableCredit = async (req: Request, res: Response) => {
+  console.log("request",req,"response",res);
   try {
-    const totalCredits = await Reseller.aggregate([
-      { $group: { _id: null, totalCredits: { $sum: "$totalCredit" } } },
-    ]);
-    const totalCreditSum = totalCredits.length ? totalCredits[0].totalCredits : 0;
-    return res.json({ 
-      message: "Get available credits retrieved successfully.",
-      totalCredits: totalCreditSum });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Error calculating total credits" });
+    
+    const resellers = await Reseller.find();
+    res.status(200).json({
+      message: "Total available credit calculated successfully.",
+      data: resellers,
+    });
+  } catch (err) {
+    console.error("Error fetching total available credit:", err);
+    res.status(500).json({
+      message: "Error fetching total available credit.",
+    });
   }
 };
 
@@ -457,30 +459,25 @@ export const getLowCreditResellers = async (req: Request, res: Response) => {
 };
 
 // get details of a specific reseller
-export const getResellerDetails = async (req: Request, res: Response) => {
-  const resellerId = req.params.id;
-  try {
-    const reseller = await Reseller.find({resellerId:resellerId})
-      .populate({ path: "resellerId", select: "name email password role status" });
+// export const getResellerDetails = async (req: Request, res: Response) => {
+//   const { resellerId } = req.params;
+//   try {
+//     const reseller = await Reseller.find({resellerId:resellerId})
+//       .populate({ path: "resellerId", select: "name email password role status" });
 
-    if (!reseller) {
-      return res.status(404).json({ message: "Reseller not found" });
-    }
+//     if (!reseller) {
+//       return res.status(404).json({ message: "Reseller not found" });
+//     }
 
-    return res.json({
-      message: "Reseller details retrieved successfully",
-      data:reseller,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Error fetching reseller details" });
-  }
-};
-
-
-function next(err: any) {
-  throw new Error("Function not implemented.");
-}
+//     return res.json({
+//       message: "Reseller details retrieved successfully",
+//       data:reseller,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: "Error fetching reseller details" });
+//   }
+// };
 
 //get total users for all resellers
 export const getTotalPremiumUsersForAllReseller = async (req: Request, res: Response, next: NextFunction) => {
