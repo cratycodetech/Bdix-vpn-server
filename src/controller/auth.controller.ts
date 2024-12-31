@@ -33,7 +33,7 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
 
     if (flag === true) {
       return res.status(400).json({
-        message: "User already verified by email.",
+        message: "User already verified by email for app.",
       });
     }
 
@@ -170,7 +170,6 @@ export const sendOtpEmail = async (email: string) => {
     const expiry = Date.now() + 10 * 60 * 1000; 
     otpStore[email] = { otp, expiry };
 
-    // Configure email transport
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -211,6 +210,7 @@ export const sendOtpEmail = async (email: string) => {
   }
 };
 
+//send otp before signup this is implement for app signup
 export const sendOtpBeforeSignup = async (req: Request, res: Response,next: NextFunction) => {
   const { email } = req.body;
 
@@ -229,6 +229,55 @@ export const sendOtpBeforeSignup = async (req: Request, res: Response,next: Next
     next(error)
   }
 };
+
+//send otp for forget password this is implement for app signup
+export const sendOtpForgetPassword = async (req: Request, res: Response,next: NextFunction) => {
+  const { email } = req.body;
+
+  try {
+    const user=await User.findOne({email})
+
+    if(!user){
+      throw new Error("User not found");
+    }
+    await sendOtpEmail(email);
+
+    res.status(200).json({
+      message: "Otp sent successfully for forget password",
+    });
+  } catch (error:any) {
+    next(error)
+  }
+};
+
+// Reset Password for app
+export const resetPasswordForApp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { email, newPassword, confirmPassword } = req.body;
+    if (newPassword !== confirmPassword) {
+      throw new Error("Passwords do not match");
+    }
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      await User.updateOne(
+        { email }, 
+        { $set: { password: hashedPassword } },
+      );
+
+    res.status(200).json({
+      message: "Password has been reset successfully for app",
+    });
+  } catch (err: any) {
+    next(err);
+  }
+};
+
 
 // Controller to verify OTP
 export const verifyOTP = (req: Request, res: Response) => {
