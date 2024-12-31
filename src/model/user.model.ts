@@ -25,6 +25,10 @@ const userSchema = new Schema<User>(
       enum: ["Admin", "Reseller","User"],
       default: "User",
     },
+    otp:{
+      type:Boolean,
+      default:false
+    },
     resetToken: String,
     resetTokenExpiry: Date,    
     status: {

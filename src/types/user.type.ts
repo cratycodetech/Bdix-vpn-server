@@ -5,6 +5,7 @@ export interface User {
     email: string;
     password: string;
     phone?: string; 
+    otp: boolean;
     resetToken: string,
     resetTokenExpiry: Date|null,
     role?: "Admin" | "Reseller" | "User"; 
