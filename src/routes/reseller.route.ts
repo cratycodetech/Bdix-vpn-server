@@ -21,7 +21,7 @@ import {
   
   //get all reseller info and total count resellers
   router.get('/all', getAllReseller )
-  
+
   //get details of a specific reseller (by ID)
   // router.get('/:id', getResellerDetails);
 
@@ -54,8 +54,6 @@ import {
 
   //get total users for all resellers
   router.get('/users/counts',getTotalPremiumUsersForAllReseller);
-  
-
   
   //get resellers with low credits (threshold provided as query parameter)
   router.get('/low-credits', getLowCreditResellers);

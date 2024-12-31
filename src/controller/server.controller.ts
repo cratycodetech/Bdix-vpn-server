@@ -11,6 +11,9 @@ import { Server as SocketServer } from 'socket.io'; // Socket.IO Server
 import si from 'systeminformation';
 import { getSocketIO } from "../utils/socket";
 import logger from "node-color-log";
+import axios from 'axios';
+import { Client } from 'ssh2';
+import { getAndStoreRealTimeData } from "../utils/realTimeData";
 
 // get all servers
 export const getAllServers = async (_: Request, res: Response, next: NextFunction) => {
@@ -179,6 +182,124 @@ export const getActiveUsers = async (req: Request, res: Response) => {
     return res.status(200).json({ message: 'Active users fetched successfully', users: activeUsers });
   } catch (error:any) {
     return res.status(500).json({ message: 'Error fetching active users', error: error.message });
+  }
+};
+
+//server load in particular server
+export const getServerLoad = async (req: Request, res: Response) => {
+  try {
+    const serverIP = req.params.serverIP;
+    const command = `uptime`; // Replace with the command you want to execute on the server
+    const result = await executeCommand(command);
+    return res.status(200).json({ message: 'Server load fetched successfully', load: result });
+  } catch (error:any) {
+    return res.status(500).json({ message: 'Error fetching server load', error: error.message });
+  }
+};
+
+// Route to fetch server load
+// const getServerMetrics = (ipAddress: string, port: number, username: string, password: string): Promise<{ load: { load1: number, load5: number, load15: number }, users: string[], traffic: { receivedKbps: number, transmittedKbps: number } }> => {
+//   return new Promise((resolve, reject) => {
+//     const conn = new Client();
+
+//     conn
+//       .on('ready', () => {
+//         conn.exec('uptime && who && ifstat 1 1', (err, stream) => {
+//           if (err) return reject(err);
+
+//           let output = '';
+//           stream.on('data', (data: Buffer) => {
+//             output += data.toString();
+//           })
+//             .on('close', () => {
+//               conn.end();
+//               try {
+//                 const [uptimeOutput, whoOutput, ifstatOutput] = output.split('\n\n');
+
+//                 // Parse load average
+//                 const loadMatch = uptimeOutput.match(/load average: ([0-9.]+), ([0-9.]+), ([0-9.]+)/);
+//                 const load = loadMatch
+//                   ? {
+//                       load1: parseFloat(loadMatch[1]),
+//                       load5: parseFloat(loadMatch[2]),
+//                       load15: parseFloat(loadMatch[3]),
+//                     }
+//                   : null;
+
+//                 // Parse connected users
+//                 const users = whoOutput
+//                   ? whoOutput.split('\n').filter((line) => line.trim()).map((line) => line.split(' ')[0])
+//                   : [];
+
+//                 // Parse traffic speed
+//                 const ifstatLines = ifstatOutput.split('\n');
+//                 const trafficMatch = ifstatLines[2]?.trim().split(/\s+/);
+//                 const traffic: { receivedKbps: number; transmittedKbps: number; } = trafficMatch
+//   ? {
+//       receivedKbps: parseFloat(trafficMatch[0]),
+//       transmittedKbps: parseFloat(trafficMatch[1]),
+//     }
+//   : { receivedKbps: 0, transmittedKbps: 0 };
+
+//                   resolve({
+//                     load: load ?? { load1: 0, load5: 0, load15: 0 },
+//                     users,
+//                     traffic,
+//                   });
+//               } catch (err) {
+//                 reject(new Error('Failed to parse server metrics'));
+//               }
+//             });
+//         });
+//       })
+//       .on('error', (err) => reject(err));
+//   });
+// };
+
+// export const getServerMetricsHandler = async (req: Request, res:Response) => {
+//   try {
+//     const { serverName } = req.params;
+
+//     // Fetch the server details from the database
+//     const server = await Server.findOne({ serverName });
+//     if (!server) {
+//       return res.status(404).json({ message: 'Server not found' });
+//     }
+
+//     // Get server metrics via SSH
+//     const metrics = await getServerMetrics(
+//       server.ipAddress,
+//       22, // Default SSH port
+//       server.userName ?? 'root',
+//       server.password
+//     );
+
+//     res.status(200).json({
+//       serverName: server.serverName,
+//       location: server.serverLocation,
+//       metrics,
+//     });
+//   } catch (error:any) {
+//     console.error(error);
+//     res.status(500).json({ message: 'Failed to fetch server metrics', error: error.message });
+//   }
+// };
+
+//endpoint for checking server load function
+export const getServerData = async (req: Request, res: Response) => {
+  try {
+    const { serverId } = req.params;
+
+    // Fetch and update server data
+    const serverData = await getAndStoreRealTimeData(serverId);
+    if (!serverData) {
+      return res.status(500).json({ message: "Failed to fetch server data" });
+    }
+
+    res.json(serverData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 

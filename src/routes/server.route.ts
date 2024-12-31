@@ -11,12 +11,14 @@ import {
   getSingleServer,
   //disconnectedVpn,
   //disconnectVPNHandler,
+  getServerData,
   updateServer,
   updateServerStatus,
   checkVpnStatus,
   getActiveUsers,
   disconnectedVpn,
   connectToVPNss,
+  // fetchServerLoad,
   //getActiveUsers,
 } from "../controller/server.controller";
 
@@ -46,6 +48,7 @@ router.patch("/change-status/:id", updateServerStatus);
 //delete user
 router.delete("/delete/:id", deleteServer);
 
+ router.get("/realtime/:serverId", getServerData);
 //checking vpn connection
 // Route to connect to the VPN
 router.post('/connect', connectToVPNss);
