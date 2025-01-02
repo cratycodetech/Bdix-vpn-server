@@ -24,6 +24,16 @@ const userCreditRequestSchema = new Schema<UserCreditRequest>(
       type: ObjectId,
       ref: "User", 
     },
+    paymentMethod:{
+      type: String,
+      enum: ["Bkash", "Nogod", "Rocket","Card","Cash"],
+      required: true
+    },
+    MoneyAmount: {
+      type: Number,
+      required: true,
+      min: [100, "Money amount must be at least 100"],
+    },
     status: {
       type: String,
       enum: ["pending", "done"], 
