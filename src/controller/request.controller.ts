@@ -36,4 +36,14 @@ export const createCreditRequest = async (req: Request, res: Response,next:NextF
       next(error)
     }
   };
+
+  //get all credit requests(request to reseller to admin)
+export const getAllResellerRequestsIsDone = async (req:Request, res:Response, next:NextFunction) => {
+  try {
+    const requests = await RequestModel.find({ status:"done"}); ; 
+    return res.status(200).json({ success: true, data: requests });
+  } catch (error) {
+    next(error)
+  }
+};
   
