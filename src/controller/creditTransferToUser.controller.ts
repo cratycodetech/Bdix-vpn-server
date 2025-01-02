@@ -43,7 +43,7 @@ export const transferCreditToUser = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Reseller not found" });
     }
 
-    const premiumUser = await PremiumUser.findOne({ userId: uId, resellerReference: reId });
+    const premiumUser = await PremiumUser.findOne({ userId: userId, resellerReference: resellerId });
 
     console.log(premiumUser);
     if (!premiumUser) {
@@ -96,20 +96,6 @@ export const transferCreditToUser = async (req: Request, res: Response) => {
 };
 
 
-
-//get all user credit request
-export const getAllUserCreditRequest = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const creditRequests = await UserCreditRequest.find({ status: "done" }); 
-    return res.status(200).json({ 
-    success: true,
-    message: "Get all user credit request  successfully",
-    count:creditRequests.length,
-    data: creditRequests });
-  } catch (error) {
-    next(error)
-  }
-};
 
 
 

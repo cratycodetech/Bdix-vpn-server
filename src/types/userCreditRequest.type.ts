@@ -1,12 +1,12 @@
 
 export type UserCreditRequest = {
-  userId: unknown; 
-  creditAmount: number; 
-  status: "pending" | "done"; 
+  userId: { name: string } | null | unknown; // Populated object or unknown
+  creditAmount: number;
+  status: "pending" | "done";
   requestTo: "Admin" | "Reseller";
-  resellerId?: unknown; 
+  resellerId?: { name: string } | null | unknown; // Populated object or unknown
   paymentMethod: "Bkash" | "Nogod" | "Rocket" | "Card" | "Cash";
   MoneyAmount: number;
-  createdAt?: Date; 
-  updatedAt?: Date;           
-}
+  createdAt?: Date;
+  updatedAt?: Date;
+};
