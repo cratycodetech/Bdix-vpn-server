@@ -11,8 +11,10 @@ import { console } from "inspector";
 export const transferCreditToUser = async (req: Request, res: Response) => {
   try {
     const { requestId } = req.body;
+    console.log("requestId", requestId);
 
     const creditRequest = await UserCreditRequest.findById({ _id: requestId });
+    console.log("creditRequest", creditRequest);
     if (!creditRequest) {
       return res.status(404).json({ message: "Credit request not found" });
     }
@@ -95,7 +97,19 @@ export const transferCreditToUser = async (req: Request, res: Response) => {
 
 
 
-
+//get all user credit request
+export const getAllUserCreditRequest = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const creditRequests = await UserCreditRequest.find({ status: "done" }); 
+    return res.status(200).json({ 
+    success: true,
+    message: "Get all user credit request  successfully",
+    count:creditRequests.length,
+    data: creditRequests });
+  } catch (error) {
+    next(error)
+  }
+};
 
 
 
