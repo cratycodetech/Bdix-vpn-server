@@ -9,6 +9,16 @@ const requestSchema = new Schema<Request>(
       required: true,
       unique: true, 
     },
+    paymentMethod:{
+      type: String,
+      enum: ["Bkash", "Nogod", "Rocket","Card","Cash"],
+      required: true
+    },
+    MoneyAmount: {
+      type: Number,
+      required: true,
+      min: [100, "Money amount must be at least 100"],
+    },
     resellerId: {
       type: ObjectId,
       refPath: "User", 
