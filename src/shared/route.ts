@@ -14,6 +14,8 @@ import serverActiveUserRoutes from "../routes/serverActiveUser.route";
 import historyRoutes from "../routes/history.route"; 
 import subscriptionRoutes from "../routes/subscriptionUser.route"; 
 import guestUserRoutes from "../routes/guestUser.route"; 
+import reportRoutes from "../routes/report.route"; 
+
 // import paymentRoutes from "../routes/payment.route"; 
 
 
@@ -45,6 +47,8 @@ router.use("/server-active-user", serverActiveUserRoutes);
 router.use("/history", historyRoutes);
 router.use("/subscription", subscriptionRoutes);
 router.use("/guest", guestUserRoutes);
+router.use("/report", reportRoutes);
+
 // router.use("/payment", paymentRoutes);
 
 
